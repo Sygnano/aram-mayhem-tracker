@@ -4,10 +4,19 @@ on:
   push:
     branches: [main]
   pull_request:
+  # The release workflow calls this, so a red commit cannot ship.
+  workflow_call:
 
+# `github.workflow` is the caller's name when the release workflow calls this, so the CI run that
+# release starts and the plain CI run of the same push are in different groups and cannot cancel
+# each other.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+# Read-only: CI never writes to the repository (the release workflow calls it too).
+permissions:
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always

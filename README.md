@@ -133,15 +133,20 @@ cargo test --workspace          # all Rust tests (run `pnpm --filter desktop bui
 
 ### Releasing
 
-Releases are built by GitHub Actions (`.github/workflows/release.yml`) when a version tag is pushed.
+Releases are built by GitHub Actions (`.github/workflows/release.yml`) from the version in the code.
+There is no tag to push by hand.
 
 1. Bump the version in `apps/desktop/src-tauri/tauri.conf.json`, `apps/desktop/package.json` and
-   `apps/desktop/src-tauri/Cargo.toml`, and commit. The workflow refuses a tag that does not match
-   all three.
-2. Tag and push: `git tag v1.0.1 && git push origin v1.0.1`.
-3. The workflow builds the installer, signs the update files and creates a **draft** release with the
-   installer, its signature and `latest.json`. Review it on GitHub, then **publish** it: installed
-   copies only see the update once the release is published.
+   `apps/desktop/src-tauri/Cargo.toml`, commit and push to `main`. The workflow fails if the three
+   differ.
+2. When that version has no release yet, draft or published, the workflow runs CI, builds the
+   installer, signs the update files and creates a **draft** release `v<version>` with the installer,
+   its signature and `latest.json`. Any other push to `main` stops after the version check.
+3. Review the draft on GitHub, write the notes, then **publish** it. GitHub creates the tag on the
+   commit that was built, and installed copies see the update from then on.
+
+To rebuild a version, delete its draft and run the workflow from the Actions tab (*Run workflow*). A
+published version is never rebuilt: bump the version instead.
 
 The update files are signed with the project's updater key. The workflow reads it from two
 repository secrets, `TAURI_SIGNING_PRIVATE_KEY` (the contents of the private key file) and

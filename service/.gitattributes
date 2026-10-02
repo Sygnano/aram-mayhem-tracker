@@ -1,0 +1,4 @@
+# The entrypoint runs in a Linux container. A CRLF checkout on a Windows clone would break its
+# shebang ("bad interpreter"), so the line endings are pinned regardless of core.autocrlf.
+*.sh text eol=lf
+Dockerfile text eol=lf

@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anvil Rankings</title>
+<!--
+  The stat anvil ranking editor.
+
+  Loads the one saved document from /v1/anvil-rankings, edits it entirely in the page, and sends it
+  back whole with Save. Shards come from /v1/anvils, champions straight from CommunityDragon. No
+  build step and no framework: this file is compiled into the service with include_str!.
+-->
+<style>
+  :root {
+    --bg: #0f1418; --panel: #161d22; --raised: #1d262c; --line: #2a353c;
+    --text: #e6e9ea; --muted: #8c989e; --accent: #4fb3c8; --danger: #e0645c; --ok: #6cc28a;
+    --silver: #b9c2c7; --gold: #e2b866; --prismatic: #d39cf2;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  button, input { font: inherit; color: inherit; }
+  button { background: var(--raised); border: 1px solid var(--line); border-radius: 6px;
+           padding: 5px 10px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: #062026; border-color: var(--accent); font-weight: 600; }
+  button.primary:disabled { opacity: .45; cursor: default; }
+  button.icon { padding: 2px 7px; }
+  button.danger:hover { border-color: var(--danger); color: var(--danger); }
+  input[type=text], input[type=password] { background: var(--bg); border: 1px solid var(--line);
+           border-radius: 6px; padding: 5px 8px; width: 100%; }
+  input:focus { outline: none; border-color: var(--accent); }
+
+  header { display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+           border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+  header h1 { font-size: 16px; margin: 0; }
+  header .status { color: var(--muted); font-size: 13px; }
+  header .spacer { flex: 1; }
+  header .token { width: 180px; }
+  .dirty-dot { color: var(--gold); }
+
+  #message { padding: 8px 16px; display: none; white-space: pre-wrap; }
+  #message.error { display: block; background: #3a1d1b; color: #ffb4ad; }
+  #message.ok { display: block; background: #17301f; color: #b6f0c7; }
+
+  main { display: grid; grid-template-columns: 220px 320px 1fr; height: calc(100vh - 53px); }
+  @media (max-width: 1100px) { main { grid-template-columns: 1fr; height: auto; } }
+  section { border-right: 1px solid var(--line); overflow: auto; padding: 12px; }
+  section h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+               margin: 0 0 8px; }
+
+  .group { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 6px;
+           cursor: pointer; }
+  .group:hover { background: var(--raised); }
+  .group.selected { background: var(--raised); outline: 1px solid var(--accent); }
+  .group .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .group .count { color: var(--muted); font-size: 12px; }
+  .group-actions { display: flex; gap: 6px; margin: 8px 0 16px; flex-wrap: wrap; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; min-height: 30px; }
+  .chip { display: flex; align-items: center; gap: 5px; background: var(--raised); border: 1px solid var(--line);
+          border-radius: 15px; padding: 2px 8px 2px 2px; cursor: pointer; font-size: 13px; }
+  .chip:hover { border-color: var(--danger); }
+  .chip img { width: 24px; height: 24px; border-radius: 50%; }
+  .empty { color: var(--muted); font-style: italic; font-size: 13px; }
+
+  .champ-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; margin-top: 8px; }
+  .champ { text-align: center; font-size: 11px; cursor: pointer; border-radius: 6px; padding: 4px 2px;
+           border: 1px solid transparent; }
+  .champ:hover { border-color: var(--accent); }
+  .champ img { width: 44px; height: 44px; border-radius: 6px; display: block; margin: 0 auto 2px; }
+  .champ .owner { color: var(--muted); font-size: 10px; display: block; overflow: hidden;
+                  text-overflow: ellipsis; white-space: nowrap; }
+  .champ.mine { opacity: .35; }
+  .toggle-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; font-size: 13px; color: var(--muted); }
+
+  .tiers { display: grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap: 12px; }
+  @media (max-width: 1400px) { .tiers { grid-template-columns: 1fr; } }
+  .tier { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+  .tier h3 { margin: 0 0 8px; font-size: 14px; display: flex; justify-content: space-between; }
+  .tier.silver h3 .label { color: var(--silver); }
+  .tier.gold h3 .label { color: var(--gold); }
+  .tier.prismatic h3 .label { color: var(--prismatic); }
+  .tier h3 .meta { color: var(--muted); font-weight: normal; font-size: 12px; }
+
+  .list { min-height: 36px; border-radius: 6px; padding: 2px; }
+  .list.drop-target { outline: 1px dashed var(--accent); }
+  .row { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 6px;
+         background: var(--raised); margin: 3px 0; border: 1px solid transparent; cursor: grab; }
+  .row.tied { margin-top: -1px; border-top-left-radius: 0; border-top-right-radius: 0; }
+  .row.tied::before { content: ""; }
+  .row.dragging { opacity: .4; }
+  .row.insert-before { box-shadow: 0 -2px 0 var(--accent); }
+  .row.insert-after { box-shadow: 0 2px 0 var(--accent); }
+  .row .rank { width: 24px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .row.tied .rank { color: var(--muted); }
+  .row img { width: 22px; height: 22px; }
+  .row .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .values { color: var(--muted); font-size: 12px; }
+  .row button { padding: 0 6px; font-size: 12px; }
+  .row button.tie-on { border-color: var(--accent); color: var(--accent); }
+  .unranked-title { font-size: 12px; color: var(--muted); margin: 10px 0 2px; border-top: 1px solid var(--line);
+                    padding-top: 8px; }
+  .unranked .row { background: transparent; border: 1px dashed var(--line); opacity: .8; }
+  .unranked .rank { color: var(--muted); }
+  .help { color: var(--muted); font-size: 12px; margin: 0 0 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Anvil Rankings</h1>
+  <span class="status" id="status">Loading…</span>
+  <span class="spacer"></span>
+  <input class="token" type="password" id="token" placeholder="Admin token" autocomplete="off">
+  <button id="download">Download JSON</button>
+  <button class="primary" id="save" disabled>Save</button>
+</header>
+<div id="message"></div>
+<main>
+  <section>
+    <h2>Groups</h2>
+    <div id="groups"></div>
+    <div class="group-actions">
+      <button id="add-group">+ New group</button>
+    </div>
+    <div id="group-tools"></div>
+  </section>
+  <section>
+    <h2 id="champ-title">Champions</h2>
+    <div class="chips" id="chips"></div>
+    <input type="text" id="search" placeholder="Search champions (English or French)">
+    <div class="toggle-row">
+      <label><input type="checkbox" id="only-ungrouped"> Only ungrouped</label>
+      <span id="ungrouped-count"></span>
+    </div>
+    <div class="champ-grid" id="champ-grid"></div>
+  </section>
+  <section>
+    <h2>Rankings</h2>
+    <p class="help">Drag to reorder. <b>⇄</b> ties a shard with the one above it (same rank).
+      Drag a shard below the line, or press ✕, to leave it unranked: unranked shards get no label.</p>
+    <div class="tiers" id="tiers"></div>
+  </section>
+</main>
+
+<script>
+"use strict";
+
+const TIERS = ["silver", "gold", "prismatic"];
+const CDRAGON = "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global";
+const TOKEN_KEY = "anvilAdminToken";
+
+const state = {
+  groups: [],          // [{ name, champions: [id], ranked: { tier: [{ id, tie }] } }]
+  selected: 0,
+  shards: {},          // tier -> [shard] in catalogue order
+  shardById: {},       // `${tier}/${id}` -> shard
+  champions: [],       // [{ id, name, nameFr, icon }]
+  championById: {},
+  savedAt: null,
+  dirty: false,
+  patch: "",
+};
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fold = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+function storage(fn, fallback) { try { return fn(); } catch { return fallback; } }
+
+function message(text, kind) {
+  const el = $("message");
+  el.textContent = text || "";
+  el.className = text ? kind : "";
+}
+
+function setDirty(dirty) {
+  state.dirty = dirty;
+  $("save").disabled = !dirty;
+  renderStatus();
+}
+
+// -- document <-> edit model -------------------------------------------------------------------
+
+/** Buckets (the stored shape) to a flat list where `tie` means "same rank as the row above". */
+function fromBuckets(buckets, tier, dropped) {
+  const rows = [];
+  for (const bucket of buckets || []) {
+    let first = true;
+    for (const id of bucket) {
+      if (!state.shardById[`${tier}/${id}`]) { dropped.push(`${tier}: ${id}`); continue; }
+      rows.push({ id, tie: !first });
+      first = false;
+    }
+  }
+  return rows;
+}
+
+function toBuckets(rows) {
+  const buckets = [];
+  for (const row of rows) {
+    if (row.tie && buckets.length) buckets[buckets.length - 1].push(row.id);
+    else buckets.push([row.id]);
+  }
+  return buckets;
+}
+
+function toDocument() {
+  return {
+    version: 1,
+    groups: state.groups.map((g) => ({
+      name: g.name.trim(),
+      champions: [...g.champions],
+      tiers: Object.fromEntries(TIERS.map((t) => [t, toBuckets(g.ranked[t])])),
+    })),
+  };
+}
+
+function loadDocument(doc) {
+  const dropped = [];
+  state.groups = (doc.groups || []).map((g) => ({
+    name: g.name,
+    champions: [...(g.champions || [])],
+    ranked: Object.fromEntries(TIERS.map((t) => [t, fromBuckets((g.tiers || {})[t], t, dropped)])),
+  }));
+  state.savedAt = doc.savedAt || null;
+  state.selected = Math.min(state.selected, Math.max(0, state.groups.length - 1));
+  if (dropped.length) {
+    message(`These shards are no longer in the game this patch and were removed from the rankings. ` +
+            `Save to make it permanent:\n${dropped.join("\n")}`, "error");
+    setDirty(true);
+  }
+}
+
+/** Dense ranks for a flat list: 1, 2, 2, 3. */
+function ranks(rows) {
+  let rank = 0;
+  return rows.map((r, i) => (i === 0 || !r.tie ? ++rank : rank));
+}
+
+// -- loading ------------------------------------------------------------------------------------
+
+async function getJson(url) {
+  const res = await fetch(url);
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || `${url}: HTTP ${res.status}`);
+  return body;
+}
+
+async function load() {
+  try {
+    const [catalogue, saved, en, fr] = await Promise.all([
+      getJson("/v1/anvils?locale=en_us"),
+      getJson("/v1/anvil-rankings"),
+      getJson(`${CDRAGON}/default/v1/champion-summary.json`),
+      getJson(`${CDRAGON}/fr_fr/v1/champion-summary.json`).catch(() => []),
+    ]);
+
+    state.patch = catalogue.patch;
+    for (const t of TIERS) state.shards[t] = [];
+    for (const s of catalogue.shards) {
+      state.shards[s.tier].push(s);
+      state.shardById[`${s.tier}/${s.id}`] = s;
+    }
+
+    const frNames = Object.fromEntries(fr.map((c) => [c.id, c.name]));
+    // -1 is "None", and ids from 60000 up are mode-specific duplicates sharing a real champion's
+    // name (246 entries on 16.19, ~170 of them real).
+    state.champions = en
+      .filter((c) => c.id > 0 && c.id < 10000)
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        nameFr: frNames[c.id] || c.name,
+        icon: `${CDRAGON}/default/v1/champion-icons/${c.id}.png`,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    state.championById = Object.fromEntries(state.champions.map((c) => [c.id, c]));
+
+    loadDocument(saved);
+    if (!state.dirty) setDirty(false);
+    render();
+  } catch (e) {
+    $("status").textContent = "Could not load";
+    message(`Loading failed: ${e.message}`, "error");
+  }
+}
+
+// -- rendering ----------------------------------------------------------------------------------
+
+function render() {
+  renderStatus();
+  renderGroups();
+  renderChampions();
+  renderTiers();
+}
+
+function renderStatus() {
+  const when = state.savedAt ? new Date(state.savedAt * 1000).toLocaleString() : "never";
+  $("status").innerHTML = `Patch ${esc(state.patch)} · last saved ${esc(when)}` +
+    (state.dirty ? ` · <span class="dirty-dot">● unsaved changes</span>` : "");
+}
+
+function current() { return state.groups[state.selected]; }
+
+function owners() {
+  const map = {};
+  state.groups.forEach((g, i) => g.champions.forEach((c) => { map[c] = i; }));
+  return map;
+}
+
+function renderGroups() {
+  const el = $("groups");
+  if (!state.groups.length) {
+    el.innerHTML = `<div class="empty">No groups yet.</div>`;
+  } else {
+    el.innerHTML = state.groups.map((g, i) => `
+      <div class="group ${i === state.selected ? "selected" : ""}" data-i="${i}">
+        <span class="name">${esc(g.name || "(unnamed)")}</span>
+        <span class="count">${g.champions.length}</span>
+      </div>`).join("");
+  }
+  el.querySelectorAll(".group").forEach((row) => row.addEventListener("click", () => {
+    state.selected = Number(row.dataset.i);
+    render();
+  }));
+
+  const g = current();
+  $("group-tools").innerHTML = g ? `
+    <h2>Selected group</h2>
+    <input type="text" id="group-name" value="${esc(g.name)}" maxlength="60">
+    <div class="group-actions"><button class="danger" id="delete-group">Delete group</button></div>` : "";
+  if (g) {
+    $("group-name").addEventListener("input", (e) => {
+      g.name = e.target.value;
+      setDirty(true);
+      const label = $("groups").querySelector(`.group[data-i="${state.selected}"] .name`);
+      if (label) label.textContent = g.name || "(unnamed)";
+    });
+    $("delete-group").addEventListener("click", () => {
+      if (!confirm(`Delete "${g.name}"? Its ${g.champions.length} champions will have no anvil labels.`)) return;
+      state.groups.splice(state.selected, 1);
+      state.selected = Math.max(0, state.selected - 1);
+      setDirty(true);
+      render();
+    });
+  }
+}
+
+function renderChampions() {
+  const g = current();
+  const own = owners();
+  const ungrouped = state.champions.filter((c) => own[c.id] === undefined);
+  $("ungrouped-count").textContent = `${ungrouped.length} ungrouped (no labels)`;
+  $("champ-title").textContent = g ? `Champions in "${g.name || "(unnamed)"}"` : "Champions";
+
+  const chips = $("chips");
+  if (!g) {
+    chips.innerHTML = `<div class="empty">Create a group first.</div>`;
+  } else if (!g.champions.length) {
+    chips.innerHTML = `<div class="empty">No champions yet. Click one below to add it.</div>`;
+  } else {
+    chips.innerHTML = g.champions
+      .map((id) => state.championById[id] || { id, name: `#${id}`, icon: "" })
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((c) => `<span class="chip" data-id="${c.id}" title="Remove ${esc(c.name)}">
+        <img src="${esc(c.icon)}" alt="">${esc(c.name)} ✕</span>`).join("");
+    chips.querySelectorAll(".chip").forEach((chip) => chip.addEventListener("click", () => {
+      g.champions = g.champions.filter((id) => id !== Number(chip.dataset.id));
+      setDirty(true);
+      render();
+    }));
+  }
+
+  const q = fold($("search").value.trim());
+  const onlyUngrouped = $("only-ungrouped").checked;
+  const list = state.champions.filter((c) =>
+    (!q || fold(c.name).includes(q) || fold(c.nameFr).includes(q)) &&
+    (!onlyUngrouped || own[c.id] === undefined));
+
+  const grid = $("champ-grid");
+  grid.innerHTML = list.map((c) => {
+    const owner = own[c.id];
+    const mine = owner === state.selected;
+    const ownerName = owner === undefined ? "" : (state.groups[owner].name || "(unnamed)");
+    return `<div class="champ ${mine ? "mine" : ""}" data-id="${c.id}" title="${esc(c.name)}">
+      <img src="${esc(c.icon)}" alt="" loading="lazy">${esc(c.name)}
+      <span class="owner">${esc(ownerName) || "&nbsp;"}</span></div>`;
+  }).join("");
+  grid.querySelectorAll(".champ").forEach((cell) => cell.addEventListener("click", () => {
+    if (!g) return;
+    const id = Number(cell.dataset.id);
+    const owner = owners()[id];
+    if (owner === state.selected) return;
+    if (owner !== undefined) {
+      const from = state.groups[owner];
+      if (!confirm(`${state.championById[id].name} is in "${from.name}". Move it to "${g.name}"?`)) return;
+      from.champions = from.champions.filter((c) => c !== id);
+    }
+    g.champions.push(id);
+    setDirty(true);
+    render();
+  }));
+}
+
+function shardRow(tier, shard, rank, row, index) {
+  const values = shard.values.map((v) => (Number.isInteger(v) ? v : v.toFixed(1))).join(" / ");
+  const ranked = row !== null;
+  return `<div class="row ${ranked && row.tie ? "tied" : ""}" draggable="true"
+      data-tier="${tier}" data-id="${esc(shard.id)}" data-index="${ranked ? index : -1}">
+    <span class="rank">${ranked ? rank : "–"}</span>
+    <img src="${esc(shard.iconUrl)}" alt="">
+    <span class="name" title="${esc(shard.id)}">${esc(shard.name)}</span>
+    <span class="values">${esc(values)}</span>
+    ${ranked
+      ? `${index > 0 ? `<button class="tie ${row.tie ? "tie-on" : ""}" title="Tie with the shard above">⇄</button>` : ""}
+         <button class="unrank" title="Leave unranked">✕</button>`
+      : `<button class="add" title="Rank last">+</button>`}
+  </div>`;
+}
+
+function renderTiers() {
+  const g = current();
+  const el = $("tiers");
+  if (!g) { el.innerHTML = `<div class="empty">Create a group to rank its anvils.</div>`; return; }
+
+  el.innerHTML = TIERS.map((tier) => {
+    const rows = g.ranked[tier];
+    const r = ranks(rows);
+    const rankedIds = new Set(rows.map((x) => x.id));
+    const unranked = state.shards[tier].filter((s) => !rankedIds.has(s.id));
+    return `<div class="tier ${tier}">
+      <h3><span class="label">${tier[0].toUpperCase() + tier.slice(1)}</span>
+          <span class="meta">${rows.length}/${state.shards[tier].length} ranked</span></h3>
+      <div class="list ranked" data-tier="${tier}">
+        ${rows.map((row, i) => shardRow(tier, state.shardById[`${tier}/${row.id}`], r[i], row, i)).join("")
+          || `<div class="empty">Drag shards here.</div>`}
+      </div>
+      <div class="unranked-title">Unranked</div>
+      <div class="list unranked" data-tier="${tier}">
+        ${unranked.map((s) => shardRow(tier, s, 0, null, -1)).join("")
+          || `<div class="empty">Every shard is ranked.</div>`}
+      </div>
+    </div>`;
+  }).join("");
+
+  el.querySelectorAll(".row").forEach((rowEl) => {
+    const tier = rowEl.dataset.tier;
+    const index = Number(rowEl.dataset.index);
+    const id = rowEl.dataset.id;
+    const rows = g.ranked[tier];
+
+    rowEl.querySelector(".tie")?.addEventListener("click", () => {
+      rows[index].tie = !rows[index].tie;
+      setDirty(true);
+      renderTiers();
+    });
+    rowEl.querySelector(".unrank")?.addEventListener("click", () => { removeRow(rows, index); changed(); });
+    rowEl.querySelector(".add")?.addEventListener("click", () => { rows.push({ id, tie: false }); changed(); });
+
+    rowEl.addEventListener("dragstart", (e) => {
+      drag = { tier, id, index };
+      rowEl.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", id);
+    });
+    rowEl.addEventListener("dragend", () => { drag = null; clearMarks(); renderTiers(); });
+  });
+
+  el.querySelectorAll(".list").forEach((list) => {
+    list.addEventListener("dragover", (e) => {
+      if (!drag || drag.tier !== list.dataset.tier) return;
+      e.preventDefault();
+      clearMarks();
+      list.classList.add("drop-target");
+      const target = rowUnder(list, e.clientY);
+      if (target && list.classList.contains("ranked")) {
+        target.el.classList.add(target.after ? "insert-after" : "insert-before");
+      }
+    });
+    list.addEventListener("dragleave", (e) => {
+      if (!list.contains(e.relatedTarget)) list.classList.remove("drop-target");
+    });
+    list.addEventListener("drop", (e) => {
+      if (!drag || drag.tier !== list.dataset.tier) return;
+      e.preventDefault();
+      const rows = g.ranked[drag.tier];
+      if (list.classList.contains("unranked")) {
+        if (drag.index >= 0) removeRow(rows, drag.index);
+      } else {
+        const target = rowUnder(list, e.clientY);
+        let at = target ? Number(target.el.dataset.index) + (target.after ? 1 : 0) : rows.length;
+        if (drag.index >= 0) {
+          if (drag.index < at) at -= 1;
+          removeRow(rows, drag.index);
+        }
+        rows.splice(at, 0, { id: drag.id, tie: false });
+      }
+      drag = null;
+      changed();
+    });
+  });
+
+  function changed() {
+    if (g.ranked) for (const t of TIERS) if (g.ranked[t][0]) g.ranked[t][0].tie = false;
+    setDirty(true);
+    renderTiers();
+  }
+}
+
+let drag = null;
+
+/** Removes a row. If it headed a tie bucket, the next row inherits the head so the tie survives. */
+function removeRow(rows, index) {
+  const [gone] = rows.splice(index, 1);
+  if (gone && !gone.tie && rows[index]) rows[index].tie = false;
+}
+
+function rowUnder(list, y) {
+  const rows = [...list.querySelectorAll(".row:not(.dragging)")];
+  for (const el of rows) {
+    const box = el.getBoundingClientRect();
+    if (y < box.top + box.height / 2) return { el, after: false };
+  }
+  const last = rows[rows.length - 1];
+  return last ? { el: last, after: true } : null;
+}
+
+function clearMarks() {
+  document.querySelectorAll(".insert-before, .insert-after, .drop-target")
+    .forEach((el) => el.classList.remove("insert-before", "insert-after", "drop-target"));
+}
+
+// -- actions ------------------------------------------------------------------------------------
+
+$("add-group").addEventListener("click", () => {
+  const name = prompt("Group name");
+  if (!name || !name.trim()) return;
+  state.groups.push({ name: name.trim(), champions: [], ranked: { silver: [], gold: [], prismatic: [] } });
+  state.selected = state.groups.length - 1;
+  setDirty(true);
+  render();
+});
+
+$("search").addEventListener("input", renderChampions);
+$("only-ungrouped").addEventListener("change", renderChampions);
+
+$("token").value = storage(() => localStorage.getItem(TOKEN_KEY), "") || "";
+$("token").addEventListener("change", (e) => {
+  storage(() => localStorage.setItem(TOKEN_KEY, e.target.value.trim()));
+});
+
+$("save").addEventListener("click", async () => {
+  const token = $("token").value.trim();
+  if (!token) { message("Enter the admin token to save.", "error"); $("token").focus(); return; }
+  $("save").disabled = true;
+  try {
+    const res = await fetch("/v1/anvil-rankings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(toDocument()),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+    storage(() => localStorage.setItem(TOKEN_KEY, token));
+    state.savedAt = body.savedAt;
+    setDirty(false);
+    message("Saved. The app picks this up the next time it loads a champion.", "ok");
+  } catch (e) {
+    $("save").disabled = false;
+    message(`Not saved: ${e.message}`, "error");
+  }
+});
+
+$("download").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(toDocument(), null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `anvil-rankings-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+window.addEventListener("beforeunload", (e) => {
+  if (state.dirty) { e.preventDefault(); e.returnValue = ""; }
+});
+
+load();
+</script>
+</body>
+</html>

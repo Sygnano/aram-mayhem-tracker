@@ -1,0 +1,10 @@
+{
+  "name": "aram-mayhem-tracker",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter desktop tauri dev",
+    "build": "pnpm --filter desktop tauri build",
+    "typecheck": "pnpm --filter desktop typecheck",
+    "test:rust": "cargo test"
+  }
+}

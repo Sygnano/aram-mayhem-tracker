@@ -1,0 +1,10 @@
+[
+  { "modeName": "CHERRY", "augmentList": ["Maps/ModeSpecificData/Augments/ArenaOnly", "Maps/ModeSpecificData/Augments/ARAM_ADAPt"] },
+  { "modeName": "KIWI", "augmentList": [
+      "Maps/ModeSpecificData/Augments/ARAM_ADAPt",
+      "Maps/ModeSpecificData/Augments/ARAM_AllForYou",
+      "Maps/ModeSpecificData/Augments/ARAM_BacktoBasics",
+      "Maps/ModeSpecificData/Augments/ARAM_BangBang"
+  ] },
+  { "modeName": "KIWI_JADE", "augmentList": ["Maps/ModeSpecificData/Augments/ARAM_ADAPt", "Maps/ModeSpecificData/Augments/DoesNotExist"] }
+]

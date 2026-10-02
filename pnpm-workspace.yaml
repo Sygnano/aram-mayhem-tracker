@@ -1,0 +1,6 @@
+packages:
+  - "apps/*"
+
+# esbuild (via Vite) runs a postinstall that checks its platform binary.
+allowBuilds:
+  esbuild: true

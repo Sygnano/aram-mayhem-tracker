@@ -1,0 +1,47 @@
+{
+  "_comment": "SYNTHETIC fixture shaped after Riot's documented liveclientdata sample. Replace with a real Mayhem dump (research check B2).",
+  "activePlayer": {
+    "championStats": { "currentHealth": 812.5, "maxHealth": 1620.0, "abilityHaste": 0.0 },
+    "currentGold": 1450.2,
+    "level": 7,
+    "riotId": "Syg#EUW",
+    "riotIdGameName": "Syg",
+    "riotIdTagLine": "EUW",
+    "summonerName": "Syg#EUW",
+    "someFieldAddedInAFuturePatch": { "anything": [1, 2, 3] }
+  },
+  "allPlayers": [
+    {
+      "championName": "Yasuo",
+      "isBot": false,
+      "isDead": true,
+      "items": [{ "itemID": 3031, "slot": 0 }],
+      "level": 7,
+      "position": "",
+      "rawChampionName": "game_character_displayname_Yasuo",
+      "respawnTimer": 11.2,
+      "riotId": "Syg#EUW",
+      "summonerName": "Syg#EUW",
+      "team": "ORDER"
+    },
+    {
+      "championName": "Annie",
+      "isBot": false,
+      "isDead": false,
+      "level": 6,
+      "rawChampionName": "game_character_displayname_Annie",
+      "respawnTimer": 0.0,
+      "riotId": "Other#EUW",
+      "summonerName": "Other#EUW",
+      "team": "CHAOS"
+    }
+  ],
+  "events": {
+    "Events": [
+      { "EventID": 0, "EventName": "GameStart", "EventTime": 0.05 },
+      { "EventID": 1, "EventName": "MinionsSpawning", "EventTime": 30.0 },
+      { "EventID": 2, "EventName": "ChampionKill", "EventTime": 402.1, "KillerName": "Other#EUW", "VictimName": "Syg#EUW", "Assisters": [] }
+    ]
+  },
+  "gameData": { "gameMode": "KIWI", "gameTime": 412.9, "mapName": "Map12", "mapNumber": 12, "mapTerrain": "Default" }
+}

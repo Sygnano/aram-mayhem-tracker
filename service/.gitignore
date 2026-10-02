@@ -1,0 +1,12 @@
+# This folder is meant to stand alone, so it carries its own ignores.
+node_modules/
+dist/
+coverage/
+
+# A local SQLite cache from `DATABASE_PATH=./local.db pnpm dev`.
+*.db
+*.db-wal
+*.db-shm
+
+.env
+*.log

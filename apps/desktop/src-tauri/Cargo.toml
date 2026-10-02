@@ -1,0 +1,48 @@
+[package]
+name = "mayhem-desktop"
+version = "1.0.0"
+description = "ARAM Mayhem Tracker: companion window and in-game overlay."
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+name = "mayhem_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+mayhem-core.workspace = true
+mayhem-vision.workspace = true
+league-api.workspace = true
+static-data.workspace = true
+aramkit-client.workspace = true
+serde.workspace = true
+# `raw_value`: the snapshot is serialised once, compared with the last one sent, and emitted as is.
+serde_json = { workspace = true, features = ["raw_value"] }
+tokio.workspace = true
+# `std` for `set_boxed_logger`: the app installs its own file logger (`logging.rs`).
+log = { workspace = true, features = ["std"] }
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-autostart = "2"
+# A second launch hands over to the running copy instead of starting a second engine.
+tauri-plugin-single-instance = "2"
+# Checks GitHub Releases for a newer signed installer, downloads it and runs it.
+tauri-plugin-updater = "2"
+raw-window-handle = "0.6"
+
+[dev-dependencies]
+# The vision worker is tested against the vision crate's screenshot fixtures.
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_System_Threading",
+    "Win32_UI_Accessibility",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_WindowsAndMessaging",
+] }

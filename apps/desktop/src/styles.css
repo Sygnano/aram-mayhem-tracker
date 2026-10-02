@@ -1,0 +1,324 @@
+:root {
+  --bg: #0f1422;
+  --panel: #161d30;
+  --line: #27314a;
+  --text: #e3e8f2;
+  --muted: #8a95ab;
+  --gold: #c89b3c;
+  --green: #3ec48a;
+  --red: #e0605a;
+  --blue: #4cc3ff;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--text);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); }
+code, pre { font-family: "Cascadia Mono", Consolas, monospace; font-size: 12px; }
+button {
+  background: var(--panel); color: var(--text); border: 1px solid var(--line);
+  border-radius: 6px; padding: 6px 10px; cursor: pointer; font: inherit;
+}
+button:hover { border-color: var(--gold); }
+button.active { border-color: var(--gold); color: var(--gold); }
+button:disabled { opacity: 0.5; cursor: default; }
+input, select { background: #0b1020; color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; font: inherit; }
+table { border-collapse: collapse; width: 100%; margin: 6px 0 12px; }
+th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+th { color: var(--muted); font-weight: 500; }
+
+.page { padding: 14px; }
+.page header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+h1 { font-size: 18px; margin: 0; color: var(--gold); letter-spacing: 0.02em; }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 8px; }
+h3 { font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+section { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
+dl { display: grid; grid-template-columns: 90px 1fr; gap: 4px 10px; margin: 0; }
+dt { color: var(--muted); }
+dd { margin: 0; }
+.muted { color: var(--muted); }
+.error { color: var(--red); }
+.warn { color: #f0b35a; }
+.note { background: #0b1020; border: 1px solid var(--line); padding: 8px; border-radius: 6px; white-space: pre-wrap; }
+.pill { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 8px; background: #25304b; color: var(--gold); font-size: 11px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.events { list-style: none; padding: 0; margin: 0; }
+.events li { padding: 1px 0; overflow-wrap: anywhere; }
+
+/* ---- companion: the main window and its settings screen ---- */
+.companion dl { grid-template-columns: 120px 1fr; }
+.companion dd { overflow-wrap: anywhere; }
+.icon-btn { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; }
+.icon-btn svg { width: 18px; height: 18px; }
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--muted); }
+.status-ok { background: var(--green); }
+.status-waiting { background: #e2b94a; }
+.status-error { background: var(--red); }
+.path { color: var(--muted); font-size: 12px; }
+.checks { display: grid; gap: 8px; }
+.field { display: grid; gap: 6px; }
+.field input { width: 100%; }
+
+/* ---- overlay: transparent, click-through, drawn over the game ---- */
+html[data-window="overlay"], html[data-window="overlay"] body { background: transparent; overflow: hidden; }
+.overlay-root { position: fixed; inset: 0; pointer-events: none; text-shadow: 0 1px 2px #000, 0 0 4px #000; }
+.ov-offer {
+  position: absolute; top: 6%; left: 50%; transform: translateX(-50%);
+  background: rgba(10, 14, 26, 0.86); border: 1px solid var(--gold); border-radius: 8px; padding: 8px 12px; min-width: 520px;
+}
+.ov-offer-title { color: var(--gold); font-weight: 600; margin-bottom: 6px; }
+.ov-offer-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ov-card { display: grid; justify-items: center; gap: 2px; border: 1px solid; border-radius: 6px; padding: 6px; }
+.ov-card img { width: 40px; height: 40px; }
+.ov-card-name { font-weight: 600; text-align: center; }
+.ov-card-rarity { font-size: 11px; }
+.ov-card-unread { color: var(--muted); }
+.ov-offer-note { margin-top: 6px; font-size: 11px; color: var(--muted); text-align: center; }
+.ov-due { position: absolute; top: 6%; left: 50%; transform: translateX(-50%); background: rgba(10, 14, 26, 0.8); padding: 4px 10px; border-radius: 6px; color: var(--gold); }
+.ov-due-why { color: var(--muted); }
+
+/* Champ-select statistics blocks.
+ *
+ * Two shapes for two shelves, both built from the same parts so the eye learns them once:
+ *
+ *  - `.ov-cs-row`   — the pick cards and the ally rows, which are wide and short. Win rate and rank
+ *                     on the left, the tier symbol in the middle, pick rate on the right.
+ *  - `.ov-cs-stack` — the available-champions strip, which is only an icon wide. The same parts
+ *                     stacked, with the tier symbol astride the top edge so the numbers keep the
+ *                     full width of the box.
+ *
+ * Sized in `vh` so a block scales with the client window rather than with the desktop — the same
+ * unit the fitted layout is measured in.
+ *
+ * `pointer-events` is off except on the bench blocks, which are buttons. Without that the overlay
+ * would swallow every click meant for the client underneath. */
+.ov-cs-block {
+  position: absolute; box-sizing: border-box; pointer-events: none;
+  border: 0.15vh solid rgba(255, 255, 255, 0.34); border-radius: 0.5vh;
+  /* Near-opaque on every surface. All three sit on the client's own artwork — splash art behind the
+   * pick cards, champion portraits behind the ally rows and the strip — so this is what keeps the
+   * figures readable rather than a style choice. One value for all three: a block that reads
+   * differently depending on which surface it is on reads as a different kind of thing. */
+  background: rgba(8, 12, 22, 0.97); color: #e8edf5;
+  line-height: 1.1; overflow: visible;
+}
+
+.ov-cs-row {
+  display: flex; flex-direction: row; align-items: center; justify-content: space-between;
+  padding: 0 0.9vh; gap: 0.7vh;
+}
+/* The ally rows sit against the client's own text, so they get the most room of the three. */
+.ov-cs-ally { padding: 0.4vh 1.2vh; }
+.ov-cs-ally .ov-cs-figures { gap: 0.15vh; }
+.ov-cs-stack {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  /* Clearance under the symbol, which hangs over the top edge. The symbol is absolutely positioned,
+   * so this is visual breathing room and not room it needs — 1.1vh here was the last thing stopping
+   * the strip's figures from taking the same size as the ally rows', at 62 px of height. */
+  padding: 0.6vh 0.2vh 0.2vh;
+}
+
+/* The tier symbol. Centred in the row; astride the top edge in the stack. */
+.ov-cs-symbol { width: 2.6vh; height: 3vh; flex: none; }
+.ov-cs-stack .ov-cs-symbol {
+  /* Centred on the block's *outer* top edge, so it overlaps the champion portrait above by exactly
+   * as much as it overlaps the block below. `strip_block_gap` is zero for the same reason — the edge
+   * it straddles has to be the join with the portrait, not a gap above it.
+   *
+   * `top` is measured from the padding box, so half the symbol's height (1.4vh) plus the border
+   * would say -1.55vh. Rendering it says -1.49vh: the 0.15vh border rounds to a whole pixel, and at
+   * 1080p that leaves the clean figure 1.2 px high. Measured beats derived here, since what is being
+   * matched is what the eye sees. At 1080p this splits 15.09 px over the portrait against 15.14 px
+   * over the block.
+   *
+   * Then nudged 0.35vh higher than that: dead centre, its bottom point sat on the win rate. It now
+   * leans a little over the portrait instead. */
+  position: absolute; top: -1.84vh; left: 50%; transform: translateX(-50%);
+  width: 2.4vh; height: 2.8vh;
+  /* The client's own artwork runs behind it, so it needs its own backing to stay readable. */
+  filter: drop-shadow(0 0 0.4vh rgba(0, 0, 0, 0.95));
+}
+
+.ov-cs-figures { display: flex; flex-direction: column; align-items: center; }
+/* `ov-delta-up` / `ov-delta-down` are the augment panels' own colours, reused rather than restated so
+ * the two overlays cannot drift apart on what green and red mean. */
+.ov-cs-win { font-size: 2.1vh; font-weight: 700; letter-spacing: -0.01em; }
+/* The rank and the pick rate: one size for the ally rows and the strip, a larger one on the pick cards
+ * below. They used to differ on all three, which left them reading as footnotes beside the win rate.
+ *
+ * These are ceilings found by rendering, not preferences. At 1920x1080, with the worst-case
+ * content of `# 168 / 168` over a three-digit pick rate, the measured largest fit per surface is:
+ *
+ *   pick card 247x78 — 1.55vh / 1.45vh, with room to spare
+ *   ally row  196x64 — 1.2vh / 1.15vh; 1.3vh spills 4.1 px past the right edge
+ *   strip     77x62  — 1.2vh / 1.15vh, and only after the stack's top padding came down
+ *
+ * The ally row is the binding constraint, and what binds it is the two-line "Pick Rate :" label: the
+ * same row without that label fits 1.55vh / 1.45vh outright. So the cards being bigger than the other
+ * two is a consequence of the label, not a decision about emphasis. */
+.ov-cs-place { font-size: 1.2vh; white-space: nowrap; }
+.ov-cs-of { color: var(--muted); }
+.ov-cs-pick { font-size: 1.15vh; color: #9fc4ff; text-align: center; white-space: nowrap; }
+
+/* The stack is the tightest of the three, so its win rate steps down. The rank and the pick rate no
+ * longer do: at 0.92vh they were the smallest text anywhere in the overlay for no reason but caution,
+ * and they fit at the shared size. */
+.ov-cs-stack .ov-cs-win { font-size: 1.7vh; }
+
+/* The pick cards are the largest surface and the actual decision, so they get the most room.
+ *
+ * The rank and the pick rate are deliberately larger here than the 2.6vh win rate would suggest they
+ * need to be: the block is 7.2vh tall (78 px of a 442 px card) and the win rate alone was leaving the
+ * lower half of it empty, which made the two smaller figures read as footnotes rather than as part of
+ * the same claim. The win rate and the tier badge keep their sizes — the win rate is already the
+ * largest thing on the block and the badge is artwork, not text.
+ *
+ * Sized against the block's *width*, which is the real constraint: 247 px inside the insets at
+ * 1920x1080, and both `.ov-cs-place` and `.ov-cs-pick` are `nowrap`. "# 168 / 168" beside "Pick Rate :"
+ * beside the badge comes to roughly 204 px at these sizes, so there is margin but not much — anything
+ * appreciably larger starts pushing out of the card. */
+.ov-cs-pickCard .ov-cs-win { font-size: 2.6vh; }
+.ov-cs-pickCard .ov-cs-place { font-size: 1.55vh; }
+.ov-cs-pickCard .ov-cs-pick { font-size: 1.45vh; }
+.ov-cs-pickCard .ov-cs-symbol { width: 3.1vh; height: 3.6vh; }
+
+/* Simple mode: the tier badge alone, centred in the block. After the shapes above so it wins over
+ * their own padding and spacing. The stack's badge comes back into the flow, off the top edge. */
+.ov-cs-simple { justify-content: center; padding: 0; }
+/* The wide blocks have no width in simple mode, so this is what stands between badge and border. */
+.ov-cs-simple.ov-cs-row { padding: 0 0.8vh; }
+.ov-cs-simple.ov-cs-stack .ov-cs-symbol { position: static; transform: none; filter: none; }
+
+/* The bench blocks are the swap buttons. */
+button.ov-cs-block {
+  pointer-events: auto; cursor: pointer; font-family: inherit;
+  border-color: rgba(87, 211, 140, 0.75);
+}
+/* Matches the resting opacity: a block that got *more* transparent on hover would read as receding. */
+button.ov-cs-block:hover { background: rgba(20, 40, 32, 0.97); border-color: #7ce8ac; }
+button.ov-cs-block:disabled { cursor: default; opacity: 0.6; }
+.ov-cs-failed { border-color: #e06666 !important; }
+
+/* Invented numbers announce themselves, and keep doing so until they are real. */
+/* A champion the table has no row for. Dashed, so it reads as "nothing to say here" rather than as
+ * a block whose numbers happen to be dull, and dimmed so the eye passes over it. */
+.ov-cs-nodata { border-style: dashed; opacity: 0.72; }
+
+/* Real numbers, but off too few games to lean on. Every champion aramkit ranks has upwards of
+ * 200,000 games, so in practice this is a guard for a champion released mid-patch. */
+.ov-cs-thin { border-style: dashed; }
+
+/* Augment statistics, one panel per card.
+ *
+ * Anchored by the BOTTOM edge (`translate(-50%, -100%)`) just above the reroll button, so extra
+ * content grows upward and can never cover the button. Half the card's width, centred on it.
+ * Sizes are in vh because the card layout itself is measured in units of client height, so the
+ * panel keeps its proportions from 1024x768 to 3440x1440. */
+.ov-panel {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  box-sizing: border-box;
+  padding: 0.75vh 0.95vh;
+  border: 1px solid;
+  border-radius: 0.6vh;
+  background: rgba(8, 12, 22, 0.9);
+  line-height: 1.2;
+  backdrop-filter: blur(2px);
+}
+.ov-panel-best { box-shadow: 0 0 0 0.2vh rgba(226, 185, 74, 0.5); }
+/* Simple mode: nothing but the badge, so it can afford to be larger. */
+.ov-panel-simple { display: flex; justify-content: center; }
+.ov-panel-simple .ov-tier { width: 3.6vh; height: 4.2vh; }
+
+/* Stat anvil rank labels: bottom edge just above the card's bottom frame, growing up. */
+.ov-anvil {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  display: flex;
+  align-items: center;
+  gap: 0.6vh;
+  padding: 0.4vh 1.2vh;
+  border: 1px solid;
+  border-radius: 0.6vh;
+  background: rgba(8, 12, 22, 0.9);
+  backdrop-filter: blur(2px);
+}
+.ov-anvil-best { box-shadow: 0 0 0 0.25vh rgba(226, 185, 74, 0.6); }
+.ov-anvil-mark { width: 2.4vh; height: 1.6vh; flex: none; }
+.ov-anvil-rank { font-size: 2.6vh; font-weight: 700; color: #f2f4f6; font-variant-numeric: tabular-nums; line-height: 1; }
+.ov-anvil-best .ov-anvil-rank { color: #e2b94a; }
+.ov-anvil-rank-of { font-size: 1.8vh; color: var(--muted); font-variant-numeric: tabular-nums; line-height: 1; }
+.ov-panel-empty { color: var(--muted); font-size: 1.3vh; text-align: center; padding: 0.3vh 0; }
+
+/* Left to right: tier, delta, separator, rates, separator, per-level deltas. */
+.ov-panel-row { display: flex; align-items: center; gap: 0.55vh; flex-wrap: wrap; justify-content: center; }
+.ov-col { display: grid; }
+.ov-sep { width: 1px; height: 2.8vh; align-self: center; background: rgba(255, 255, 255, 0.18); }
+
+.ov-tier { width: 2.9vh; height: 3.4vh; flex: none; }
+
+.ov-col-delta { justify-items: end; }
+.ov-delta { font-size: 1.8vh; font-weight: 700; line-height: 1; white-space: nowrap; text-align: right; }
+.ov-delta-up { color: #57d38c; }
+.ov-delta-down { color: #e2685f; }
+/* Dimmed when the number carries a caveat, so a confident figure always reads brighter. */
+.ov-delta-weak { opacity: 0.6; }
+.ov-rank { font-size: 1.25vh; color: var(--text); margin-top: 0.2vh; white-space: nowrap; text-align: right; }
+.ov-rank-of { color: var(--muted); }
+
+/* Two columns, so both values start at the same x instead of trailing their labels. */
+.ov-rates { grid-template-columns: auto auto; column-gap: 0.75vh; align-items: baseline; }
+.ov-rate-label { font-size: 1.08vh; color: var(--muted); }
+.ov-rate-value { font-size: 1.08vh; text-align: right; white-space: nowrap; }
+
+.ov-levels { gap: 0.12vh; }
+.ov-level { display: grid; grid-template-columns: 2vh auto auto; column-gap: 0.3vh; align-items: baseline; }
+/* Only the offer in front of you reads at full strength; the rest are context. */
+.ov-level { opacity: 0.38; }
+.ov-level-now { opacity: 1; }
+.ov-level-weak { opacity: 0.25; }
+.ov-level-now.ov-level-weak { opacity: 0.6; }
+.ov-level-n { font-size: 1vh; color: var(--muted); text-align: right; }
+.ov-level-dot { font-size: 1vh; color: var(--muted); opacity: 0.55; }
+.ov-level-v { font-size: 1vh; text-align: right; white-space: nowrap; }
+.ov-level-absent { opacity: 0.55; font-weight: 600; }
+
+.ov-panel-caveat { width: 100%; font-size: 0.95vh; color: #e2b94a; opacity: 0.85; text-align: center; }
+.ov-note-warn { color: #e2b94a; }
+
+/* The ranked list for the offer's rarity, top right. One column: only the augments this champion
+ * can actually be offered are listed, which is about half a rarity pool. */
+.ov-pool {
+  position: absolute; top: 3%; right: 1.2%; width: 23vh;
+  background: rgba(10, 14, 26, 0.88); border: 1px solid; border-radius: 0.6vh; padding: 0.7vh 0.9vh;
+  max-height: 94%;
+}
+.ov-pool-stale { font-size: 0.9vh; color: #e2b94a; margin-bottom: 0.4vh; }
+.ov-pool-list { list-style: none; margin: 0; padding: 0; display: grid; row-gap: 0.1vh; }
+.ov-pool-row {
+  display: grid; grid-template-columns: 1.2vh 2.6vh 1fr auto;
+  gap: 0.45vh; font-size: 1vh; align-items: baseline;
+}
+.ov-pool-tier { font-weight: 700; text-align: center; }
+.ov-pool-rank { color: var(--muted); text-align: right; }
+.ov-pool-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The cards actually on screen, so the list answers "which of these three" at a glance. */
+.ov-pool-offered { background: rgba(226, 185, 74, 0.16); border-radius: 0.3vh; }
+.ov-pool-offered .ov-pool-name { font-weight: 600; }
+/* Cannot be offered at this stage. */
+.ov-pool-unavailable { opacity: 0.32; }
+/* Already seen this game, so out of the pool for good. */
+.ov-pool-used { opacity: 0.38; text-decoration: line-through; }
+.ov-pool-used .ov-delta-up, .ov-pool-used .ov-delta-down, .ov-pool-used .ov-pool-tier { color: var(--muted); }
+
+/* A settings checkbox whose consequences need spelling out next to it. */
+.check { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: start; }
+.check input { margin-top: 3px; }
+.check em { display: block; font-style: normal; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.check strong { color: var(--gold); font-weight: 600; }
+.updates { display: grid; gap: 6px; justify-items: start; }
+.updates p { margin: 0; }
+.updates strong { color: var(--gold); }
+.radios { display: flex; gap: 16px; }
+.radios label { display: flex; gap: 8px; align-items: center; }

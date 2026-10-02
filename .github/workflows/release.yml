@@ -1,0 +1,78 @@
+name: Release
+
+# Pushing a version tag (`v1.0.1`) builds the installer, signs the update files, and creates a
+# **draft** GitHub release with the installer, its signature and `latest.json`. Nothing
+# reaches users until the draft is published by hand: the update feed is the latest *published*
+# release, so publishing is the moment every installed copy can see the new version.
+on:
+  push:
+    tags: ["v*"]
+
+# One release build per tag at a time; a second push of the same tag waits rather than racing.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  # Creating the release and uploading its files.
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The tag, the installer and the update feed must all name the same version, and the updater
+      # refuses a signature made for another version (`requireSignedVersion`). Checked first,
+      # so a mistyped tag fails in seconds rather than after the build.
+      - name: Check the tag matches the app version
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}".TrimStart("v")
+          $conf = (Get-Content apps/desktop/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $npm = (Get-Content apps/desktop/package.json -Raw | ConvertFrom-Json).version
+          $cargo = (Select-String -Path apps/desktop/src-tauri/Cargo.toml -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
+          Write-Host "tag $tag, tauri.conf.json $conf, package.json $npm, Cargo.toml $cargo"
+          if ($tag -ne $conf -or $tag -ne $npm -or $tag -ne $cargo) {
+            Write-Error "The tag says $tag but the app says tauri.conf.json $conf, package.json $npm, Cargo.toml $cargo. Bump all three, commit, and tag again."
+            exit 1
+          }
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # The version comes from rust-toolchain.toml.
+      - name: Install the Rust toolchain
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+
+      # Pinned to the commit of v1.0.0 rather than a moving tag: this step holds the signing key.
+      - uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: apps/desktop
+          tauriScript: pnpm tauri
+          tagName: ${{ github.ref_name }}
+          releaseName: ARAM Mayhem Tracker ${{ github.ref_name }}
+          releaseBody: |
+            Download `ARAM Mayhem Tracker_*_x64-setup.exe` below and run it. Installed copies with
+            this version or later can update from the app: *Updates*, then *Check for updates*.
+
+            Before installing, read [Before you install](https://github.com/Sygnano/aram-mayhem-tracker#before-you-install):
+            with *Manage item sets* on, the app replaces every item page on your account.
+          releaseDraft: true
+          prerelease: false
+          uploadUpdaterJson: true

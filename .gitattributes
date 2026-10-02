@@ -1,0 +1,3 @@
+# The OCR dictionary is embedded with `include_str!` and indexed by line, so its bytes must not depend on
+# the checkout's line-ending settings.
+crates/mayhem-vision/assets/ocr/*.dict.txt text eol=lf

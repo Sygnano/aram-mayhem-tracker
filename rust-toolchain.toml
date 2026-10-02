@@ -1,0 +1,6 @@
+# Pinned so every machine builds with the same compiler; rustup installs it automatically.
+[toolchain]
+channel = "1.94.1"
+profile = "minimal"
+components = ["clippy", "rustfmt"]
+targets = ["x86_64-pc-windows-msvc"]

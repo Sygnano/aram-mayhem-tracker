@@ -1,0 +1,63 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/aramkit-client",
+    "crates/mayhem-core",
+    "crates/mayhem-vision",
+    "crates/league-api",
+    "crates/static-data",
+    "apps/desktop/src-tauri",
+]
+# `service/` is a completely independent workspace: its own lockfile and dependency
+# versions, built by Railway from that folder alone. Excluded so nothing here reaches into it.
+exclude = ["service"]
+
+# The desktop app needs the Tauri system libraries (WebView2 on Windows, WebKitGTK elsewhere),
+# so plain `cargo test` / `cargo check` stay on the platform-independent crates.
+default-members = [
+    "crates/aramkit-client",
+    "crates/mayhem-core",
+    "crates/mayhem-vision",
+    "crates/league-api",
+    "crates/static-data",
+]
+
+[workspace.package]
+edition = "2021"
+rust-version = "1.91"
+license = "MIT"
+publish = false
+
+[workspace.dependencies]
+aramkit-client = { path = "crates/aramkit-client" }
+mayhem-core = { path = "crates/mayhem-core" }
+mayhem-vision = { path = "crates/mayhem-vision" }
+league-api = { path = "crates/league-api" }
+static-data = { path = "crates/static-data" }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync", "fs"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls-manual-roots", "rustls-tls-webpki-roots"] }
+base64 = "0.22"
+log = "0.4"
+windows = "0.61"
+
+# Optimise dependencies even in debug builds: the OCR model and image decoding are unusably slow
+# unoptimised, and tests run them on real screenshots.
+[profile.dev.package."*"]
+opt-level = 2
+
+# The same goes for our own image code, which `pnpm dev` would otherwise compile unoptimised: card
+# frame matching and the OCR input scaling are tight per-pixel loops, and they run every tick.
+# Optimising them does not measurably slow the edit-compile cycle, since these two crates are small.
+[profile.dev.package.mayhem-vision]
+opt-level = 2
+[profile.dev.package.mayhem-core]
+opt-level = 2
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

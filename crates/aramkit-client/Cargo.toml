@@ -1,0 +1,21 @@
+[package]
+name = "aramkit-client"
+version = "0.1.0"
+description = "Client for our aramkit caching service: augment statistics for the offer on screen, with an on-disk last-good copy."
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+# `gzip`: the service compresses its answers, and the champion bundle is mostly repeated field names.
+reqwest = { workspace = true, features = ["gzip"] }
+tokio.workspace = true
+log.workspace = true
+
+[dev-dependencies]
+# `net` and `io-util` for the one-connection stand-in service the fallback tests talk to.
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "net", "io-util"] }

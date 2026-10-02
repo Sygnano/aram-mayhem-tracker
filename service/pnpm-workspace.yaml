@@ -1,0 +1,8 @@
+# Makes service/ its own pnpm root. Without this file pnpm walks up to the repo's workspace, which
+# does not list this folder, and Railway builds from service/ alone anyway.
+
+# better-sqlite3 ships prebuilt binaries for linux, darwin and win32 (x64 and arm64) and loads them
+# itself; it declares `"gypfile": false` to say no build is needed. pnpm ignores that flag and would
+# run `node-gyp rebuild`, which needs Python and a C++ toolchain the image does not have.
+allowBuilds:
+  better-sqlite3: false

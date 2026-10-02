@@ -1,0 +1,24 @@
+# Cargo build output. Unanchored, so it covers `service/target/` too — `service/` is an independent
+# workspace and builds its own target directory outside the root one.
+target/
+
+node_modules/
+dist/
+apps/desktop/src-tauri/gen/
+# Private: design docs and Claude Code configuration.
+docs/
+.claude/
+CLAUDE.md
+
+# The service's local SQLite cache, from running it with DATABASE_PATH=./local.db. On Railway the
+# database lives on the mounted volume, never in the repo.
+*.db
+*.db-wal
+*.db-shm
+
+.env
+.env.*
+!.env.example
+
+*.log
+.DS_Store

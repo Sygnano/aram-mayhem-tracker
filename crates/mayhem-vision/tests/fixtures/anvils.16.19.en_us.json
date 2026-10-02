@@ -1,0 +1,321 @@
+{
+ "patch": "16.19",
+ "locale": "en_us",
+ "shards": [
+  {
+   "id": "ARAM_StatAnvil_AD",
+   "tier": "silver",
+   "kind": "MinAD",
+   "name": "Attack Damage Shard",
+   "values": [
+    11.0
+   ]
+  },
+  {
+   "id": "ARAM_StatAnvil_AH",
+   "tier": "silver",
+   "kind": "MinAH",
+   "name": "Ability Haste Shard",
+   "values": [
+    11.0
+   ]
+  },
+  {
+   "id": "ARAM_StatAnvil_AP",
+   "tier": "silver",
+   "kind": "MinAP",
+   "name": "Ability Power Shard",
+   "values": [
+    15.0
+   ]
+  },
+  {
+   "id": "ARAM_StatAnvil_AR",
+   "tier": "silver",
+   "kind": "MinAR",
+   "name": "Armor Shard",
+   "values": [
+    12.0
+   ]
+  },
+  {
+   "id": "ARAM_StatAnvil_AS",
+   "tier": "silver",
+   "kind": "MinAS",
+   "name": "Attack Speed Shard",
+   "values": [
+    11.0
+   ]
+  },
+  {
+   "id": "ARAM_StatAnvil_CritChance",
+   "tier": "silver",
+   "kind": "MinCritChance",
+   "name": "Critical Shard",
+   "values": [
+    8.0
+   ]
+  },
+  {
+   "id": "ARAM_StatAnvil_HP",
+   "tier": "silver",
+   "kind": "MinHP",
+   "name": "Health Shard",
+   "values": [
+    110.0
+   ]
+  },
+  {
+   "id": "ARAM_StatAnvil_Hybrid1",
+   "tier": "silver",
+   "kind": "MinAS+MinAH",
+   "name": "Swiftness Shard",
+   "values": [
+    10.0,
+    8.0
+   ]
+  },
+  {
+   "id": "ARAM_StatAnvil_Hybrid2",
+   "tier": "silver",
+   "kind": "MinAD+MinAP",
+   "name": "Might Shard",
+   "values": [
+    8.0,
+    12.0
+   ]
+  },
+  {
+   "id": "ARAM_StatAnvil_Hybrid3",
+   "tier": "silver",
+   "kind": "MinArmor+MinMR",
+   "name": "Unbreakable Shard",
+   "values": [
+    10.0,
+    10.0
+   ]
+  },
+  {
+   "id": "ARAM_StatAnvil_Lethality",
+   "tier": "silver",
+   "kind": "MinLethality",
+   "name": "Lethality Shard",
+   "values": [
+    8.0
+   ]
+  },
+  {
+   "id": "ARAM_StatAnvil_MPen",
+   "tier": "silver",
+   "kind": "MinMPen",
+   "name": "Magic Penetration Shard",
+   "values": [
+    8.0
+   ]
+  },
+  {
+   "id": "ARAM_StatAnvil_MR",
+   "tier": "silver",
+   "kind": "MinMR",
+   "name": "Magic Resist Shard",
+   "values": [
+    14.0
+   ]
+  },
+  {
+   "id": "ARAM_GoldStatAnvil_AD",
+   "tier": "gold",
+   "kind": "MinAD",
+   "name": "Attack Damage Shard",
+   "values": [
+    35.0
+   ]
+  },
+  {
+   "id": "ARAM_GoldStatAnvil_AH",
+   "tier": "gold",
+   "kind": "MinAH",
+   "name": "Ability Haste Shard",
+   "values": [
+    35.0
+   ]
+  },
+  {
+   "id": "ARAM_GoldStatAnvil_AP",
+   "tier": "gold",
+   "kind": "MinAP",
+   "name": "Ability Power Shard",
+   "values": [
+    50.0
+   ]
+  },
+  {
+   "id": "ARAM_GoldStatAnvil_AR",
+   "tier": "gold",
+   "kind": "MinAR",
+   "name": "Armor Shard",
+   "values": [
+    45.0
+   ]
+  },
+  {
+   "id": "ARAM_GoldStatAnvil_AS",
+   "tier": "gold",
+   "kind": "MinAS",
+   "name": "Attack Speed Shard",
+   "values": [
+    35.0
+   ]
+  },
+  {
+   "id": "ARAM_GoldStatAnvil_CritChance",
+   "tier": "gold",
+   "kind": "MinCritChance",
+   "name": "Critical Strike Shard",
+   "values": [
+    25.0
+   ]
+  },
+  {
+   "id": "ARAM_GoldStatAnvil_HP",
+   "tier": "gold",
+   "kind": "MinHP",
+   "name": "Health Shard",
+   "values": [
+    375.0
+   ]
+  },
+  {
+   "id": "ARAM_GoldStatAnvil_Hybrid1",
+   "tier": "gold",
+   "kind": "MinAS+MinAH",
+   "name": "Swiftness Shard",
+   "values": [
+    25.0,
+    20.0
+   ]
+  },
+  {
+   "id": "ARAM_GoldStatAnvil_Hybrid2",
+   "tier": "gold",
+   "kind": "MinAD+MinAP",
+   "name": "Might Shard",
+   "values": [
+    25.0,
+    25.0
+   ]
+  },
+  {
+   "id": "ARAM_GoldStatAnvil_Hybrid3",
+   "tier": "gold",
+   "kind": "MinArmor+MinMR",
+   "name": "Unbreakable Shard",
+   "values": [
+    30.0,
+    30.0
+   ]
+  },
+  {
+   "id": "ARAM_GoldStatAnvil_Lethality",
+   "tier": "gold",
+   "kind": "MinLethality",
+   "name": "Lethality Shard",
+   "values": [
+    20.0
+   ]
+  },
+  {
+   "id": "ARAM_GoldStatAnvil_MPen",
+   "tier": "gold",
+   "kind": "MinMPen",
+   "name": "Magic Penetration Shard",
+   "values": [
+    18.0
+   ]
+  },
+  {
+   "id": "ARAM_GoldStatAnvil_MR",
+   "tier": "gold",
+   "kind": "MinMR",
+   "name": "Magic Resist Shard",
+   "values": [
+    45.0
+   ]
+  },
+  {
+   "id": "ARAM_PrisStatAnvil_CritDamage",
+   "tier": "prismatic",
+   "kind": "MinCritDamage",
+   "name": "Critical Damage Shard",
+   "values": [
+    25.0
+   ]
+  },
+  {
+   "id": "ARAM_PrisStatAnvil_HP",
+   "tier": "prismatic",
+   "kind": "MinHP+SizeGain",
+   "name": "Health and Size Shard",
+   "values": [
+    15.0,
+    10.0
+   ]
+  },
+  {
+   "id": "ARAM_PrisStatAnvil_Lethality",
+   "tier": "prismatic",
+   "kind": "MinLethality",
+   "name": "Armor Penetration Shard",
+   "values": [
+    17.5
+   ]
+  },
+  {
+   "id": "ARAM_PrisStatAnvil_MPen",
+   "tier": "prismatic",
+   "kind": "MinMPen",
+   "name": "Magic Penetration Shard",
+   "values": [
+    17.5
+   ]
+  },
+  {
+   "id": "ARAM_StatAnvil_HS",
+   "tier": "prismatic",
+   "kind": "MinHS",
+   "name": "Heal & Shield Power Shard",
+   "values": [
+    25.0
+   ]
+  },
+  {
+   "id": "ARAM_StatAnvil_MS",
+   "tier": "prismatic",
+   "kind": "MinMS+SizeMod",
+   "name": "Move Speed Shard",
+   "values": [
+    15.0,
+    -10.0
+   ]
+  },
+  {
+   "id": "ARAM_StatAnvil_Omnivamp",
+   "tier": "prismatic",
+   "kind": "MeleeOmnivamp+RangedOmnivamp",
+   "name": "Omnivamp Shard",
+   "values": [
+    20.0,
+    10.0
+   ]
+  },
+  {
+   "id": "ARAM_StatAnvil_Tenacity",
+   "tier": "prismatic",
+   "kind": "MinTenacity",
+   "name": "Tenacity Shard",
+   "values": [
+    30.0
+   ]
+  }
+ ]
+}

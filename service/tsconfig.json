@@ -1,0 +1,28 @@
+{
+  // Type-checks everything, tests included. `tsconfig.build.json` narrows this to what ships.
+  "compilerOptions": {
+    "target": "es2024",
+    "lib": ["es2024"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": ["node"],
+
+    // Imports name the .ts file, so `node src/server.ts` runs the source as it is (Node strips the
+    // types) and the build rewrites them to .js.
+    "rewriteRelativeImportExtensions": true,
+    // Only syntax Node's type stripping can erase: no enums, no namespaces, no parameter properties.
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+
+    "rootDir": "src",
+    "outDir": "dist",
+    "sourceMap": true
+  },
+  "include": ["src"]
+}

@@ -1,0 +1,4 @@
+# The style the code is already written in: lines up to 120 columns, and short constructs kept on
+# one line where they fit. Enforced in CI with `cargo fmt --all --check`.
+max_width = 120
+use_small_heuristics = "Max"

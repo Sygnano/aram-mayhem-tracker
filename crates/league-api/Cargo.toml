@@ -1,0 +1,27 @@
+[package]
+name = "league-api"
+version = "0.1.0"
+description = "Thin, lenient adapters for League's two local APIs: Live Client Data (:2999) and the LCU."
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+reqwest.workspace = true
+base64.workspace = true
+
+# Finding the running client's directory when no known one has a lockfile. Name-list snapshot plus
+# one limited-rights query on the client's own UI process; see `lockfile.rs`.
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_System_Diagnostics_ToolHelp",
+    "Win32_System_Threading",
+] }
+
+[dev-dependencies]
+tokio.workspace = true

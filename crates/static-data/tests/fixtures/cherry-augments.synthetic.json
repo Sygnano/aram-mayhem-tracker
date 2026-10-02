@@ -1,0 +1,8 @@
+[
+  { "id": 1205, "augmentNameId": "ARAM_ADAPt", "nameTRA": "ADAPt", "simpleNameTRA": "ADAPt", "augmentSmallIconPath": "/lol-game-data/assets/ASSETS/UX/Cherry/Augments/Icons/ADAPt_small.png", "rarity": "kSilver" },
+  { "id": 1141, "augmentNameId": "ARAM_AllForYou", "nameTRA": "All For You", "augmentSmallIconPath": "/lol-game-data/assets/ASSETS/UX/Cherry/Augments/Icons/AllForYou_small.png", "rarity": "kGold" },
+  { "id": 1004, "augmentNameId": "ARAM_BacktoBasics", "nameTRA": "Back To Basics", "augmentSmallIconPath": "/lol-game-data/assets/ASSETS/UX/Cherry/Augments/Icons/BackToBasics_small.png", "rarity": "kPrismatic" },
+  { "id": 2103, "augmentNameId": "ARAM_BangBang", "nameTRA": "From Downtown", "augmentSmallIconPath": "/lol-game-data/assets/ASSETS/UX/Kiwi/Augments/Icons/QuestBangBang_small.png", "rarity": "kGold" },
+  { "id": 99, "augmentNameId": "ArenaOnly", "nameTRA": "Arena Only", "augmentSmallIconPath": "", "rarity": "kSilver" },
+  { "id": 98, "augmentNameId": "", "nameTRA": "", "rarity": "kSilver" }
+]

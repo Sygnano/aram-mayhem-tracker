@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # The desktop app and its crates. Windows, because that is the only platform the app targets: the
+  # capture, the overlay and client discovery are Win32, and their tests only run there.
+  desktop:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+      # Also what the Rust build needs: `tauri::generate_context!` embeds `apps/desktop/dist`.
+      - name: Build the frontend
+        run: pnpm --filter desktop build
+
+      # The version comes from rust-toolchain.toml.
+      - name: Install the Rust toolchain
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Test
+        run: cargo test --workspace --locked
+
+  # The caching service: TypeScript, independent of everything above its folder, built
+  # for Linux on Railway.
+  service:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: service
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: service/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Lint and format
+        run: pnpm exec biome ci .
+      - name: Test
+        run: pnpm test
+      - name: Build
+        run: pnpm build
+      # The image Railway builds. Docker is not installed on the development machine, so this is
+      # where the Dockerfile is checked.
+      - name: Build the image
+        run: docker build --tag aramkit-cache .

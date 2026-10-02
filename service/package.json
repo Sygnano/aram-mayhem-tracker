@@ -1,0 +1,38 @@
+{
+  "name": "aramkit-cache",
+  "version": "0.2.0",
+  "description": "Caches aramkit's per-patch data and serves slim, purpose-built payloads to the ARAM Mayhem Tracker app.",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@12.3.4",
+  "scripts": {
+    "dev": "node --watch src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@fastify/compress": "^9.2.0",
+    "@fastify/type-provider-typebox": "^6.1.0",
+    "better-sqlite3": "^13.0.3",
+    "fastify": "^5.12.5",
+    "p-limit": "^7.3.3",
+    "pino": "^10.3.1",
+    "typebox": "^1.3.34"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^24.19.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}

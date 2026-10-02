@@ -1,0 +1,1536 @@
+{
+ "{3afc663c}": {
+  "AugmentNameId": "ARAM_StatAnvil_Hybrid1",
+  "NameTra": "Cherry_StatAnvil_Hybrid1_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_Hybrid1_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_Hybrid1_Tooltip",
+  "RootSpell": "{040012e1}",
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/silver_hybrid1.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/silver_hybrid1.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   0
+  ],
+  "__type": "AnvilData"
+ },
+ "{040012e1}": {
+  "ObjectName": "Augment_ARAM_StatAnvil_Hybrid1",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinAS",
+     "values": [
+      0.10000000149011612,
+      0.10000000149011612,
+      0.10000000149011612,
+      0.10000000149011612,
+      0.10000000149011612,
+      0.10000000149011612,
+      0.10000000149011612
+     ],
+     "__type": "SpellDataValue"
+    },
+    {
+     "name": "MinAH",
+     "values": [
+      8.0,
+      8.0,
+      8.0,
+      8.0,
+      8.0,
+      8.0,
+      8.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{713613eb}": {
+  "AugmentNameId": "ARAM_GoldStatAnvil_MPen",
+  "NameTra": "Cherry_GoldStatAnvil_MPen_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_MPen_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_MPen_Tooltip",
+  "RootSpell": "{06073edf}",
+  "mAugmentTags": 2,
+  "mBuildTags": 34,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/gold_mpen.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/gold_mpen.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   8
+  ],
+  "__type": "AnvilData"
+ },
+ "{06073edf}": {
+  "ObjectName": "Augment_ARAM_GoldStatAnvil_MPen",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinMPen",
+     "values": [
+      18.0,
+      18.0,
+      18.0,
+      18.0,
+      18.0,
+      18.0,
+      18.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{0b5c8c69}": {
+  "AugmentNameId": "ARAM_PrisStatAnvil_HP",
+  "NameTra": "Cherry_PrisStatAnvil_HP_Name",
+  "DescriptionTra": "Cherry_PrisStatAnvil_HP_Tooltip",
+  "AugmentTooltipTra": "Cherry_PrisStatAnvil_HP_Tooltip",
+  "RootSpell": "{696c434b}",
+  "mBuildTags": 256,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/prismatic_hp.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/prismatic_hp.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   9
+  ],
+  "__type": "AnvilData"
+ },
+ "{696c434b}": {
+  "ObjectName": "Augment_ARAM_PrisStatAnvil_HP",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinHP",
+     "values": [
+      0.15000000596046448,
+      0.15000000596046448,
+      0.15000000596046448,
+      0.15000000596046448,
+      0.15000000596046448,
+      0.15000000596046448,
+      0.15000000596046448
+     ],
+     "__type": "SpellDataValue"
+    },
+    {
+     "name": "SizeGain",
+     "values": [
+      0.10000000149011612,
+      0.10000000149011612,
+      0.10000000149011612,
+      0.10000000149011612,
+      0.10000000149011612,
+      0.10000000149011612,
+      0.10000000149011612
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{100bbc43}": {
+  "AugmentNameId": "ARAM_StatAnvil_Lethality",
+  "NameTra": "Cherry_StatAnvil_Lethality_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_Lethality_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_Lethality_Tooltip",
+  "RootSpell": "{f9c91da7}",
+  "mAugmentTags": 4,
+  "mBuildTags": 18,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/silver_apen.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/silver_apen.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   0
+  ],
+  "__type": "AnvilData"
+ },
+ "{f9c91da7}": {
+  "ObjectName": "Augment_ARAM_StatAnvil_Lethality",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinLethality",
+     "values": [
+      8.0,
+      8.0,
+      8.0,
+      8.0,
+      8.0,
+      8.0,
+      8.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{3dfc6af5}": {
+  "AugmentNameId": "ARAM_StatAnvil_Hybrid2",
+  "NameTra": "Cherry_StatAnvil_Hybrid2_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_Hybrid2_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_Hybrid2_Tooltip",
+  "RootSpell": "{132800fb}",
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/silver_hybrid2.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/silver_hybrid2.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   0
+  ],
+  "__type": "AnvilData"
+ },
+ "{132800fb}": {
+  "ObjectName": "Augment_ARAM_StatAnvil_Hybrid2",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinAD",
+     "values": [
+      8.0,
+      8.0,
+      8.0,
+      8.0,
+      8.0,
+      8.0,
+      8.0
+     ],
+     "__type": "SpellDataValue"
+    },
+    {
+     "name": "MinAP",
+     "values": [
+      12.0,
+      12.0,
+      12.0,
+      12.0,
+      12.0,
+      12.0,
+      12.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{341b8de7}": {
+  "AugmentNameId": "ARAM_StatAnvil_CritChance",
+  "NameTra": "Cherry_StatAnvil_CritChance_Name",
+  "DescriptionTra": "Kiwi_StatAnvil_CritChance_Tooltip",
+  "AugmentTooltipTra": "Kiwi_StatAnvil_CritChance_Tooltip",
+  "RootSpell": "{163c350f}",
+  "mBuildTags": 512,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/silver_critchance.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/silver_critchance.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   0
+  ],
+  "__type": "AnvilData"
+ },
+ "{163c350f}": {
+  "ObjectName": "Augment_ARAM_StatAnvil_CritChance",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinCritChance",
+     "values": [
+      0.07999999821186066,
+      0.07999999821186066,
+      0.07999999821186066,
+      0.07999999821186066,
+      0.07999999821186066,
+      0.07999999821186066,
+      0.07999999821186066
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{b718f01e}": {
+  "AugmentNameId": "ARAM_GoldStatAnvil_MR",
+  "NameTra": "Cherry_StatAnvil_MR_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_MR_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_MR_Tooltip",
+  "RootSpell": "{176035bb}",
+  "mBuildTags": 256,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/gold_mr.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/gold_mr.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   8
+  ],
+  "__type": "AnvilData"
+ },
+ "{176035bb}": {
+  "ObjectName": "Augment_ARAM_GoldStatAnvil_MR",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinMR",
+     "values": [
+      45.0,
+      45.0,
+      45.0,
+      45.0,
+      45.0,
+      45.0,
+      45.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{84fe6864}": {
+  "AugmentNameId": "ARAM_PrisStatAnvil_CritDamage",
+  "NameTra": "Cherry_PrisStatAnvil_CritDamage_Name",
+  "DescriptionTra": "Cherry_PrisStatAnvil_CritDamage_Tooltip",
+  "AugmentTooltipTra": "Cherry_PrisStatAnvil_CritDamage_Tooltip",
+  "RootSpell": "{227e26db}",
+  "mAugmentTags": 4,
+  "mBuildTags": 512,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/prismatic_apen.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/prismatic_apen.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   9
+  ],
+  "__type": "AnvilData"
+ },
+ "{227e26db}": {
+  "ObjectName": "Augment_ARAM_PrisStatAnvil_CritDamage",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinCritDamage",
+     "values": [
+      0.25,
+      0.25,
+      0.25,
+      0.25,
+      0.25,
+      0.25,
+      0.25
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{293187c2}": {
+  "AugmentNameId": "ARAM_GoldStatAnvil_Random",
+  "Enabled": false,
+  "NameTra": "Cherry_GoldStatAnvil_Random_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_Random_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_Random_Tooltip",
+  "RootSpell": "{5b5d2adf}",
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/gold_faith.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/gold_faith.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   8
+  ],
+  "__type": "AnvilData"
+ },
+ "{5b5d2adf}": {
+  "ObjectName": "Augment_ARAM_GoldStatAnvil_Random",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinRand",
+     "values": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{2ec7d74f}": {
+  "AugmentNameId": "ARAM_StatAnvil_Pristine",
+  "Enabled": false,
+  "NameTra": "Cherry_StatAnvil_Pristine_Name",
+  "DescriptionTra": "Cherry_StatAnvil_Pristine_Tooltip",
+  "AugmentTooltipTra": "Cherry_StatAnvil_Pristine_Tooltip",
+  "RootSpell": "{db1284cf}",
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/silver_pristine.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/silver_pristine.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   9,
+   8,
+   9
+  ],
+  "__type": "AnvilData"
+ },
+ "{db1284cf}": {
+  "ObjectName": "Augment_ARAM_StatAnvil_Pristine",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinMultiplier",
+     "values": [
+      0.20000000298023224,
+      0.20000000298023224,
+      0.20000000298023224,
+      0.20000000298023224,
+      0.20000000298023224,
+      0.20000000298023224,
+      0.20000000298023224
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{cd6ffc30}": {
+  "AugmentNameId": "ARAM_StatAnvil_AR",
+  "NameTra": "Cherry_StatAnvil_AR_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_AR_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_AR_Tooltip",
+  "RootSpell": "{353d68eb}",
+  "mBuildTags": 256,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/silver_ar.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/silver_ar.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   0
+  ],
+  "__type": "AnvilData"
+ },
+ "{353d68eb}": {
+  "ObjectName": "Augment_ARAM_StatAnvil_AR",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinAR",
+     "values": [
+      12.0,
+      12.0,
+      12.0,
+      12.0,
+      12.0,
+      12.0,
+      12.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{e85539f6}": {
+  "AugmentNameId": "ARAM_GoldStatAnvil_Hybrid1",
+  "NameTra": "Cherry_GoldStatAnvil_Hybrid1_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_Hybrid1_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_Hybrid1_Tooltip",
+  "RootSpell": "{35426c49}",
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/gold_hybrid1.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/gold_hybrid1.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   8
+  ],
+  "__type": "AnvilData"
+ },
+ "{35426c49}": {
+  "ObjectName": "Augment_ARAM_GoldStatAnvil_Hybrid1",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinAS",
+     "values": [
+      0.25,
+      0.25,
+      0.25,
+      0.25,
+      0.25,
+      0.25,
+      0.25
+     ],
+     "__type": "SpellDataValue"
+    },
+    {
+     "name": "MinAH",
+     "values": [
+      20.0,
+      20.0,
+      20.0,
+      20.0,
+      20.0,
+      20.0,
+      20.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{e7553863}": {
+  "AugmentNameId": "ARAM_GoldStatAnvil_Hybrid2",
+  "NameTra": "Cherry_GoldStatAnvil_Hybrid2_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_Hybrid2_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_Hybrid2_Tooltip",
+  "RootSpell": "{38215797}",
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/gold_hybrid2.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/gold_hybrid2.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   8
+  ],
+  "__type": "AnvilData"
+ },
+ "{38215797}": {
+  "ObjectName": "Augment_ARAM_GoldStatAnvil_Hybrid2",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinAD",
+     "values": [
+      25.0,
+      25.0,
+      25.0,
+      25.0,
+      25.0,
+      25.0,
+      25.0
+     ],
+     "__type": "SpellDataValue"
+    },
+    {
+     "name": "MinAP",
+     "values": [
+      25.0,
+      25.0,
+      25.0,
+      25.0,
+      25.0,
+      25.0,
+      25.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{3cfc6962}": {
+  "AugmentNameId": "ARAM_StatAnvil_Hybrid3",
+  "NameTra": "Cherry_StatAnvil_Hybrid3_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_Hybrid3_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_Hybrid3_Tooltip",
+  "RootSpell": "{f3a97e81}",
+  "AugmentLargeIconPath": "assets/items/icons2d/icon_stat_ar.tex",
+  "AugmentSmallIconPath": "assets/items/icons2d/icon_stat_ar.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   0
+  ],
+  "__type": "AnvilData"
+ },
+ "{f3a97e81}": {
+  "ObjectName": "Augment_ARAM_StatAnvil_Hybrid3",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinArmor",
+     "values": [
+      10.0,
+      10.0,
+      10.0,
+      10.0,
+      10.0,
+      10.0,
+      10.0
+     ],
+     "__type": "SpellDataValue"
+    },
+    {
+     "name": "MinMR",
+     "values": [
+      10.0,
+      10.0,
+      10.0,
+      10.0,
+      10.0,
+      10.0,
+      10.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{3e739299}": {
+  "AugmentNameId": "ARAM_StatAnvil_MPen",
+  "NameTra": "Cherry_StatAnvil_MPen_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_MPen_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_MPen_Tooltip",
+  "RootSpell": "{938c561f}",
+  "mAugmentTags": 2,
+  "mBuildTags": 34,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/silver_mpen.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/silver_mpen.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   0
+  ],
+  "__type": "AnvilData"
+ },
+ "{938c561f}": {
+  "ObjectName": "Augment_ARAM_StatAnvil_MPen",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinMPen",
+     "values": [
+      8.0,
+      8.0,
+      8.0,
+      8.0,
+      8.0,
+      8.0,
+      8.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{b325b5c5}": {
+  "AugmentNameId": "ARAM_GoldStatAnvil_HP",
+  "NameTra": "Cherry_GoldStatAnvil_HP_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_HP_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_HP_Tooltip",
+  "RootSpell": "{4a1fa823}",
+  "mBuildTags": 256,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/gold_hp.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/gold_hp.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   8
+  ],
+  "__type": "AnvilData"
+ },
+ "{4a1fa823}": {
+  "ObjectName": "Augment_ARAM_GoldStatAnvil_HP",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinHP",
+     "values": [
+      375.0,
+      375.0,
+      375.0,
+      375.0,
+      375.0,
+      375.0,
+      375.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{a50fd96c}": {
+  "AugmentNameId": "ARAM_GoldStatAnvil_AH",
+  "NameTra": "Cherry_GoldStatAnvil_AH_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_AH_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_AH_Tooltip",
+  "RootSpell": "{4a32b8f3}",
+  "mBuildTags": 314,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/gold_ah.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/gold_ah.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   8
+  ],
+  "__type": "AnvilData"
+ },
+ "{4a32b8f3}": {
+  "ObjectName": "Augment_ARAM_GoldStatAnvil_AH",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinAH",
+     "values": [
+      35.0,
+      35.0,
+      35.0,
+      35.0,
+      35.0,
+      35.0,
+      35.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{4d300e4d}": {
+  "AugmentNameId": "ARAM_GoldStatAnvil_Lethality",
+  "NameTra": "Cherry_GoldStatAnvil_Lethality_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_Lethality_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_Lethality_Tooltip",
+  "RootSpell": "{80a9d5c7}",
+  "mAugmentTags": 4,
+  "mBuildTags": 18,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/gold_apen.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/gold_apen.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   8
+  ],
+  "__type": "AnvilData"
+ },
+ "{80a9d5c7}": {
+  "ObjectName": "Augment_ARAM_GoldStatAnvil_Lethality",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinLethality",
+     "values": [
+      20.0,
+      20.0,
+      20.0,
+      20.0,
+      20.0,
+      20.0,
+      20.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{61fcc778}": {
+  "AugmentNameId": "ARAM_StatAnvil_Random",
+  "Enabled": false,
+  "NameTra": "Cherry_StatAnvil_Random_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_Random_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_Random_Tooltip",
+  "RootSpell": "{4eeea947}",
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/silver_faith.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/silver_faith.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   0
+  ],
+  "__type": "AnvilData"
+ },
+ "{4eeea947}": {
+  "ObjectName": "Augment_ARAM_StatAnvil_Random",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinRand",
+     "values": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{c36fec72}": {
+  "AugmentNameId": "ARAM_StatAnvil_AD",
+  "NameTra": "Cherry_StatAnvil_AD_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_AD_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_AD_Tooltip",
+  "RootSpell": "{51b4d7bf}",
+  "mAugmentTags": 4,
+  "mBuildTags": 594,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/silver_ad.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/silver_ad.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   0
+  ],
+  "__type": "AnvilData"
+ },
+ "{51b4d7bf}": {
+  "ObjectName": "Augment_ARAM_StatAnvil_AD",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinAD",
+     "values": [
+      11.0,
+      11.0,
+      11.0,
+      11.0,
+      11.0,
+      11.0,
+      11.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{ce6ffdc3}": {
+  "AugmentNameId": "ARAM_StatAnvil_AS",
+  "NameTra": "Cherry_StatAnvil_AS_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_AS_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_AS_Tooltip",
+  "RootSpell": "{5f00eca7}",
+  "mBuildTags": 82,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/silver_as.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/silver_as.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   0
+  ],
+  "__type": "AnvilData"
+ },
+ "{5f00eca7}": {
+  "ObjectName": "Augment_ARAM_StatAnvil_AS",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinAS",
+     "values": [
+      0.10999999940395355,
+      0.10999999940395355,
+      0.10999999940395355,
+      0.10999999940395355,
+      0.10999999940395355,
+      0.10999999940395355,
+      0.10999999940395355
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{cf6fff56}": {
+  "AugmentNameId": "ARAM_StatAnvil_AP",
+  "NameTra": "Cherry_StatAnvil_AP_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_AP_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_AP_Tooltip",
+  "RootSpell": "{61185e77}",
+  "mAugmentTags": 2,
+  "mBuildTags": 42,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/silver_ap.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/silver_ap.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   0
+  ],
+  "__type": "AnvilData"
+ },
+ "{61185e77}": {
+  "ObjectName": "Augment_ARAM_StatAnvil_AP",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinAP",
+     "values": [
+      15.0,
+      15.0,
+      15.0,
+      15.0,
+      15.0,
+      15.0,
+      15.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{e67ab0e7}": {
+  "AugmentNameId": "ARAM_StatAnvil_MS",
+  "NameTra": "Cherry_StatAnvil_MS_Name",
+  "DescriptionTra": "Cherry_StatAnvil_MS_Tooltip",
+  "AugmentTooltipTra": "Cherry_StatAnvil_MS_Tooltip",
+  "RootSpell": "{6400dc8f}",
+  "mBuildTags": 506,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/prismatic_ms.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/prismatic_ms.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   9
+  ],
+  "__type": "AnvilData"
+ },
+ "{6400dc8f}": {
+  "ObjectName": "Augment_ARAM_StatAnvil_MS",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinMS",
+     "values": [
+      0.15000000596046448,
+      0.15000000596046448,
+      0.15000000596046448,
+      0.15000000596046448,
+      0.15000000596046448,
+      0.15000000596046448,
+      0.15000000596046448
+     ],
+     "__type": "SpellDataValue"
+    },
+    {
+     "name": "SizeMod",
+     "values": [
+      -0.10000000149011612,
+      -0.10000000149011612,
+      -0.10000000149011612,
+      -0.10000000149011612,
+      -0.10000000149011612,
+      -0.10000000149011612,
+      -0.10000000149011612
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{e5877b47}": {
+  "AugmentNameId": "ARAM_StatAnvil_HP",
+  "NameTra": "Cherry_StatAnvil_HP_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_HP_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_HP_Tooltip",
+  "RootSpell": "{6dde388f}",
+  "mBuildTags": 256,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/silver_hp.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/silver_hp.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   0
+  ],
+  "__type": "AnvilData"
+ },
+ "{6dde388f}": {
+  "ObjectName": "Augment_ARAM_StatAnvil_HP",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinHP",
+     "values": [
+      110.0,
+      110.0,
+      110.0,
+      110.0,
+      110.0,
+      110.0,
+      110.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{c01003ed}": {
+  "AugmentNameId": "ARAM_GoldStatAnvil_AS",
+  "NameTra": "Cherry_GoldStatAnvil_AS_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_AS_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_AS_Tooltip",
+  "RootSpell": "{6f220e27}",
+  "mBuildTags": 82,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/gold_as.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/gold_as.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   8
+  ],
+  "__type": "AnvilData"
+ },
+ "{6f220e27}": {
+  "ObjectName": "Augment_ARAM_GoldStatAnvil_AS",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinAS",
+     "values": [
+      0.3499999940395355,
+      0.3499999940395355,
+      0.3499999940395355,
+      0.3499999940395355,
+      0.3499999940395355,
+      0.3499999940395355,
+      0.3499999940395355
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{8172bca9}": {
+  "AugmentNameId": "ARAM_GoldStatAnvil_CritChance",
+  "NameTra": "Cherry_GoldStatAnvil_CritChance_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_CritChance_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_CritChance_Tooltip",
+  "RootSpell": "{72ff74f7}",
+  "mBuildTags": 512,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/gold_critchance.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/gold_critchance.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   8
+  ],
+  "__type": "AnvilData"
+ },
+ "{72ff74f7}": {
+  "ObjectName": "Augment_ARAM_GoldStatAnvil_CritChance",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinCritChance",
+     "values": [
+      0.25,
+      0.25,
+      0.25,
+      0.25,
+      0.25,
+      0.25,
+      0.25
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{f11287fa}": {
+  "AugmentNameId": "ARAM_StatAnvil_Tenacity",
+  "NameTra": "Cherry_StatAnvil_Tenacity_Name",
+  "DescriptionTra": "Cherry_StatAnvil_Tenacity_Tooltip",
+  "AugmentTooltipTra": "Cherry_StatAnvil_Tenacity_Tooltip",
+  "RootSpell": "{7bdeccff}",
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/prismatic_tenacity.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/prismatic_tenacity.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   9
+  ],
+  "__type": "AnvilData"
+ },
+ "{7bdeccff}": {
+  "ObjectName": "Augment_ARAM_StatAnvil_Tenacity",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinTenacity",
+     "values": [
+      0.30000001192092896,
+      0.30000001192092896,
+      0.30000001192092896,
+      0.30000001192092896,
+      0.30000001192092896,
+      0.30000001192092896,
+      0.30000001192092896
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{a1aa9131}": {
+  "AugmentNameId": "ARAM_PrisStatAnvil_Lethality",
+  "NameTra": "Cherry_PrisStatAnvil_ArmorPen",
+  "DescriptionTra": "Cherry_PrisStatAnvil_ArmorPen_Tooltip",
+  "AugmentTooltipTra": "Cherry_PrisStatAnvil_ArmorPen_Tooltip",
+  "RootSpell": "{aa9ff9ef}",
+  "mAugmentTags": 4,
+  "mBuildTags": 18,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/prismatic_apen.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/prismatic_apen.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   9
+  ],
+  "__type": "AnvilData"
+ },
+ "{aa9ff9ef}": {
+  "ObjectName": "Augment_ARAM_PrisStatAnvil_Lethality",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinLethality",
+     "values": [
+      0.17499999701976776,
+      0.17499999701976776,
+      0.17499999701976776,
+      0.17499999701976776,
+      0.17499999701976776,
+      0.17499999701976776,
+      0.17499999701976776
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{e65536d0}": {
+  "AugmentNameId": "ARAM_GoldStatAnvil_Hybrid3",
+  "NameTra": "Cherry_GoldStatAnvil_Hybrid3_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_Hybrid3_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_Hybrid3_Tooltip",
+  "RootSpell": "{a2ca567d}",
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/gold_ar.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/gold_ar.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   8
+  ],
+  "__type": "AnvilData"
+ },
+ "{a2ca567d}": {
+  "ObjectName": "Augment_ARAM_GoldStatAnvil_Hybrid3",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinArmor",
+     "values": [
+      30.0,
+      30.0,
+      30.0,
+      30.0,
+      30.0,
+      30.0,
+      30.0
+     ],
+     "__type": "SpellDataValue"
+    },
+    {
+     "name": "MinMR",
+     "values": [
+      30.0,
+      30.0,
+      30.0,
+      30.0,
+      30.0,
+      30.0,
+      30.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{e57aaf54}": {
+  "AugmentNameId": "ARAM_StatAnvil_MR",
+  "NameTra": "Cherry_StatAnvil_MR_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_MR_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_MR_Tooltip",
+  "RootSpell": "{a3395593}",
+  "mBuildTags": 256,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/silver_mr.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/silver_mr.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   0
+  ],
+  "__type": "AnvilData"
+ },
+ "{a3395593}": {
+  "ObjectName": "Augment_ARAM_StatAnvil_MR",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinMR",
+     "values": [
+      14.0,
+      14.0,
+      14.0,
+      14.0,
+      14.0,
+      14.0,
+      14.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{a90fdfb8}": {
+  "AugmentNameId": "ARAM_GoldStatAnvil_AD",
+  "NameTra": "Cherry_GoldStatAnvil_AD_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_AD_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_AD_Tooltip",
+  "RootSpell": "{b75aae3b}",
+  "mAugmentTags": 4,
+  "mBuildTags": 594,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/gold_ad.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/gold_ad.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   8
+  ],
+  "__type": "AnvilData"
+ },
+ "{b75aae3b}": {
+  "ObjectName": "Augment_ARAM_GoldStatAnvil_AD",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinAD",
+     "values": [
+      35.0,
+      35.0,
+      35.0,
+      35.0,
+      35.0,
+      35.0,
+      35.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{ac4d2767}": {
+  "AugmentNameId": "ARAM_PrisStatAnvil_MPen",
+  "NameTra": "Cherry_PrisStatAnvil_MPen_Name",
+  "DescriptionTra": "Cherry_PrisStatAnvil_MPen_Tooltip",
+  "AugmentTooltipTra": "Cherry_PrisStatAnvil_MPen_Tooltip",
+  "RootSpell": "{dc5c71af}",
+  "mAugmentTags": 2,
+  "mBuildTags": 34,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/prismatic_mpen.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/prismatic_mpen.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   9
+  ],
+  "__type": "AnvilData"
+ },
+ "{dc5c71af}": {
+  "ObjectName": "Augment_ARAM_PrisStatAnvil_MPen",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinMPen",
+     "values": [
+      0.17499999701976776,
+      0.17499999701976776,
+      0.17499999701976776,
+      0.17499999701976776,
+      0.17499999701976776,
+      0.17499999701976776,
+      0.17499999701976776
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{bf10025a}": {
+  "AugmentNameId": "ARAM_GoldStatAnvil_AR",
+  "NameTra": "Cherry_GoldStatAnvil_AR_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_AR_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_AR_Tooltip",
+  "RootSpell": "{af762f33}",
+  "mBuildTags": 256,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/gold_ar.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/gold_ar.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   8
+  ],
+  "__type": "AnvilData"
+ },
+ "{af762f33}": {
+  "ObjectName": "Augment_ARAM_GoldStatAnvil_AR",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinAR",
+     "values": [
+      45.0,
+      45.0,
+      45.0,
+      45.0,
+      45.0,
+      45.0,
+      45.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{bd0fff34}": {
+  "AugmentNameId": "ARAM_GoldStatAnvil_AP",
+  "NameTra": "Cherry_GoldStatAnvil_AP_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_AP_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_AP_Tooltip",
+  "RootSpell": "{cb9c2fe3}",
+  "mAugmentTags": 2,
+  "mBuildTags": 42,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/gold_ap.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/gold_ap.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   8
+  ],
+  "__type": "AnvilData"
+ },
+ "{cb9c2fe3}": {
+  "ObjectName": "Augment_ARAM_GoldStatAnvil_AP",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinAP",
+     "values": [
+      50.0,
+      50.0,
+      50.0,
+      50.0,
+      50.0,
+      50.0,
+      50.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{c36e1b36}": {
+  "AugmentNameId": "ARAM_StatAnvil_Omnivamp",
+  "NameTra": "Cherry_StatAnvil_Omnivamp_Name",
+  "DescriptionTra": "Kiwi_StatAnvil_Omnicamp_Tooltip",
+  "AugmentTooltipTra": "Kiwi_StatAnvil_Omnicamp_Tooltip",
+  "RootSpell": "{f23cde4b}",
+  "mBuildTags": 242,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/prismatic_vamp.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/prismatic_vamp.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   9
+  ],
+  "__type": "AnvilData"
+ },
+ "{f23cde4b}": {
+  "ObjectName": "Augment_ARAM_StatAnvil_Omnivamp",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MeleeOmnivamp",
+     "values": [
+      0.20000000298023224,
+      0.20000000298023224,
+      0.20000000298023224,
+      0.20000000298023224,
+      0.20000000298023224,
+      0.20000000298023224,
+      0.20000000298023224
+     ],
+     "__type": "SpellDataValue"
+    },
+    {
+     "name": "RangedOmnivamp",
+     "values": [
+      0.10000000149011612,
+      0.10000000149011612,
+      0.10000000149011612,
+      0.10000000149011612,
+      0.10000000149011612,
+      0.10000000149011612,
+      0.10000000149011612
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{c76ff2be}": {
+  "AugmentNameId": "ARAM_StatAnvil_AH",
+  "NameTra": "Cherry_StatAnvil_AH_Name",
+  "DescriptionTra": "Cherry_GoldStatAnvil_AH_Tooltip",
+  "AugmentTooltipTra": "Cherry_GoldStatAnvil_AH_Tooltip",
+  "RootSpell": "{db444647}",
+  "mBuildTags": 314,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/silver_ah.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/silver_ah.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   0
+  ],
+  "__type": "AnvilData"
+ },
+ "{db444647}": {
+  "ObjectName": "Augment_ARAM_StatAnvil_AH",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinAH",
+     "values": [
+      11.0,
+      11.0,
+      11.0,
+      11.0,
+      11.0,
+      11.0,
+      11.0
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "{e6877cda}": {
+  "AugmentNameId": "ARAM_StatAnvil_HS",
+  "NameTra": "Cherry_StatAnvil_Spirit_Name",
+  "DescriptionTra": "Cherry_StatAnvil_Spirit_Tooltip",
+  "AugmentTooltipTra": "Cherry_StatAnvil_Spirit_Tooltip",
+  "RootSpell": "{e879add7}",
+  "mAugmentTags": 2048,
+  "mBuildTags": 8,
+  "AugmentLargeIconPath": "assets/ux/cherry/augments/statanvil/prismatic_hs.tex",
+  "AugmentSmallIconPath": "assets/ux/cherry/augments/statanvil/prismatic_hs.tex",
+  "AugmentDisplayTags": [
+   6
+  ],
+  "AnvilTypes": [
+   9
+  ],
+  "__type": "AnvilData"
+ },
+ "{e879add7}": {
+  "ObjectName": "Augment_ARAM_StatAnvil_HS",
+  "mSpell": {
+   "DataValues": [
+    {
+     "name": "MinHS",
+     "values": [
+      0.25,
+      0.25,
+      0.25,
+      0.25,
+      0.25,
+      0.25,
+      0.25
+     ],
+     "__type": "SpellDataValue"
+    }
+   ]
+  },
+  "__type": "SpellObject"
+ },
+ "Maps/Shipping/Map12/Unrelated": {
+  "__type": "VfxSystemDefinitionData",
+  "x": 1
+ }
+}

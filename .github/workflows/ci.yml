@@ -24,8 +24,18 @@ env:
 jobs:
   # The desktop app and its crates. Windows, because that is the only platform the app targets: the
   # capture, the overlay and client discovery are Win32, and their tests only run there.
+  #
+  # Clippy and the tests run as two jobs side by side: clippy only checks and the tests compile, so
+  # neither can reuse the other's output, and one after the other they took most of the time. The
+  # quick checks (typecheck, fmt) run in the clippy job only.
   desktop:
+    name: desktop (${{ matrix.check }})
     runs-on: windows-latest
+    strategy:
+      # One failing does not cancel the other, so a run reports both clippy and the tests.
+      fail-fast: false
+      matrix:
+        check: [clippy, test]
     steps:
       - uses: actions/checkout@v7
 
@@ -39,21 +49,28 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Typecheck
+        if: matrix.check == 'clippy'
         run: pnpm typecheck
-      # Also what the Rust build needs: `tauri::generate_context!` embeds `apps/desktop/dist`.
+      # Both jobs need it: `tauri::generate_context!` embeds `apps/desktop/dist`, in clippy too.
       - name: Build the frontend
         run: pnpm --filter desktop build
 
       # The version comes from rust-toolchain.toml.
       - name: Install the Rust toolchain
         run: rustup toolchain install
+      # A cache per job: clippy's check-only output is no use to the test build, and the reverse.
       - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.check }}
 
       - name: Format
+        if: matrix.check == 'clippy'
         run: cargo fmt --all --check
       - name: Clippy
+        if: matrix.check == 'clippy'
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: Test
+        if: matrix.check == 'test'
         run: cargo test --workspace --locked
 
   # The caching service: TypeScript, independent of everything above its folder, built

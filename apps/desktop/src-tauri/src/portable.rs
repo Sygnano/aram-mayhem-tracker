@@ -2,9 +2,10 @@
 //!
 //! A file named [`MARKER`] next to the executable turns it on; the release zip ships one, the
 //! installer does not. A portable copy keeps its settings, its cache and its logs in a `data` folder
-//! beside the executable, so the folder can be moved or carried and nothing of it is left in
-//! `%APPDATA%`. If that folder cannot be written (a zip opened in place, or a folder under Program
-//! Files), the copy falls back to the installed copy's folders rather than lose every setting change.
+//! beside the executable, so the folder can be moved or carried and only WebView2's browser data
+//! is left in `%LOCALAPPDATA%`. If that folder cannot be written (a zip opened in place, or a folder
+//! under Program Files), the copy falls back to the installed copy's folder rather than lose every
+//! setting change.
 //!
 //! The NSIS updater cannot update a portable copy: it would install a second copy beside it. A
 //! portable copy still checks for a newer version, and offers the release page instead.

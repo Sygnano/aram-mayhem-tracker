@@ -1,5 +1,5 @@
-//! What the app remembers, and what it is tuned with. Two files in `<app config dir>`, with opposite
-//! rules:
+//! What the app remembers, and what it is tuned with. Two files in `%LOCALAPPDATA%\<identifier>`
+//! (in `data` beside the executable for a portable copy), with opposite rules:
 //!
 //! - **`config.json`** holds the user's [`Settings`] and nothing else. The app writes it whenever
 //!   one changes.

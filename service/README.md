@@ -27,7 +27,7 @@ created on first run and the migrations apply on their own. A fresh database ans
 `{"ok":true,"patch":null,…,"championsCached":0}` for the first moments; the patch fills in once
 aramkit's `versions.json` has been read.
 
-To point the desktop app at a local service, create `%APPDATA%\dev.syg.aram-mayhem-tracker\tuning.json`
+To point the desktop app at a local service, create `%LOCALAPPDATA%\dev.syg.aram-mayhem-tracker\tuning.json`
 containing `{ "serviceBase": "http://127.0.0.1:8123" }` and restart the app. Delete the file
 afterwards: the app reads it at every start.
 

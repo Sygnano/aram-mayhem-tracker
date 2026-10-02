@@ -72,10 +72,12 @@ pub fn run() {
         .setup(|app| {
             let paths = app.path();
             let mode = portable::Mode::detect();
-            // A portable copy keeps all three beside its executable; see `portable`.
+            // A portable copy keeps all three beside its executable; see `portable`. An installed
+            // copy keeps them in one folder, `%LOCALAPPDATA%\<identifier>`, where WebView2 also keeps
+            // its data: the settings are not worth roaming, and one folder is one thing to delete.
             let (log_dir, config_dir, cache_dir) = match mode.data_dir() {
                 Some(data) => (Some(data.join("logs")), data.to_path_buf(), data.join("cache")),
-                None => (paths.app_log_dir().ok(), paths.app_config_dir()?, paths.app_cache_dir()?),
+                None => (paths.app_log_dir().ok(), paths.app_local_data_dir()?, paths.app_cache_dir()?),
             };
             // First, so that everything after it, the engine's own start included, is on record.
             let log_file = log_dir.and_then(|dir| logging::init(&dir));

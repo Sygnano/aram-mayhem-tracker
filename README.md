@@ -64,9 +64,9 @@ copy checks for updates like an installed one, but *Open release page* replaces 
 download the new zip and replace the folder's files with it, keeping `data`. *Start with Windows
 minimized* starts the copy from where it is, so untick it before moving the folder.
 
-To uninstall, use *Settings → Apps → Installed apps* in Windows. Your settings and logs stay in
-`%APPDATA%\dev.syg.aram-mayhem-tracker` and `%LOCALAPPDATA%\dev.syg.aram-mayhem-tracker`; delete
-those two folders to remove everything.
+To uninstall, use *Settings → Apps → Installed apps* in Windows. Your settings, logs and cache stay
+in `%LOCALAPPDATA%\dev.syg.aram-mayhem-tracker`; delete that folder to remove everything. To remove
+a portable copy, delete its folder, and that same `%LOCALAPPDATA%` folder for WebView2's data.
 
 ## Using it
 

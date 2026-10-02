@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useSnapshot } from "../useSnapshot";
 import { useConfig } from "../useConfig";
-import type { ChatStatus, Snapshot, UpdateStatus } from "../types";
+import type { ChatStatus, InstallMode, Snapshot, UpdateStatus } from "../types";
 import { Settings } from "./Settings";
 
 export function Companion() {
@@ -50,6 +50,11 @@ function Home({ s, onSettings }: { s: Snapshot; onSettings: () => void }) {
     save(patch).catch((e) => setRefused(String(e)));
   };
   const ready = readiness(s);
+  const [mode, setMode] = useState<InstallMode | null>(null);
+  useEffect(() => {
+    invoke<InstallMode>("get_install_mode").then(setMode).catch(console.error);
+  }, []);
+  const portable = mode?.portable ?? false;
 
   return (
     <div className="page companion">
@@ -122,8 +127,22 @@ function Home({ s, onSettings }: { s: Snapshot; onSettings: () => void }) {
             <h2>Parameters</h2>
             <div className="checks">
               <Check label="Keep in tray" checked={cfg.keepInTray} onChange={(on) => update({ keepInTray: on })} />
-              <Check label="Start with Windows minimized" checked={cfg.startMinimized} onChange={(on) => update({ startMinimized: on })} />
+              <Check label="Start with Windows minimized" checked={cfg.startMinimized} onChange={(on) => update({ startMinimized: on })}>
+                {portable && "Starts this copy from where it is now. Untick it before moving the folder."}
+              </Check>
             </div>
+            {mode?.portable &&
+              (mode.dataDir ? (
+                <p className="muted">
+                  Portable copy: settings and logs are kept in{" "}
+                  <span className="path">{mode.dataDir}</span>
+                </p>
+              ) : (
+                <p className="error">
+                  Portable copy, but its folder cannot be written: settings are kept in AppData instead. Extract the
+                  zip to a folder you own.
+                </p>
+              ))}
           </section>
 
           <section>
@@ -134,7 +153,7 @@ function Home({ s, onSettings }: { s: Snapshot; onSettings: () => void }) {
                 checked={cfg.checkUpdatesOnStartup}
                 onChange={(on) => update({ checkUpdatesOnStartup: on })}
               />
-              <UpdatePanel />
+              <UpdatePanel portable={portable} />
             </div>
           </section>
         </>
@@ -160,9 +179,10 @@ const UPDATE_BUSY: UpdateStatus["state"][] = ["checking", "downloading", "instal
 
 /**
  * "Check for updates", what the check found, and "Download update" when there is something newer.
- * The status lives in the backend, so a check started at launch shows here too.
+ * The status lives in the backend, so a check started at launch shows here too. A portable copy
+ * cannot run the installer, so it gets the release page instead of the download.
  */
-function UpdatePanel() {
+function UpdatePanel({ portable }: { portable: boolean }) {
   const [status, setStatus] = useState<UpdateStatus>({ state: "idle" });
   const busy = UPDATE_BUSY.includes(status.state);
 
@@ -185,6 +205,9 @@ function UpdatePanel() {
       .then(setStatus)
       .catch((e) => setStatus({ state: "failed", message: String(e) }));
   };
+  const openReleases = () => {
+    invoke<void>("open_releases_page").catch((e) => setStatus({ state: "failed", message: String(e) }));
+  };
   const download = () => {
     // The installer closes the app; this only resolves when it failed, and the status says why.
     invoke<void>("install_update").catch(() =>
@@ -199,11 +222,16 @@ function UpdatePanel() {
         Check for updates
       </button>
       <UpdateLine status={status} />
-      {status.state === "available" && (
-        <button onClick={download} className="active">
-          Download update
-        </button>
-      )}
+      {status.state === "available" &&
+        (portable ? (
+          <button onClick={openReleases} className="active">
+            Open release page
+          </button>
+        ) : (
+          <button onClick={download} className="active">
+            Download update
+          </button>
+        ))}
     </div>
   );
 }

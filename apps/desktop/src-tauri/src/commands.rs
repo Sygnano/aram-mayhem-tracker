@@ -3,12 +3,13 @@
 use std::sync::Arc;
 
 use league_api::lcu::{ChatStatus, LcuClient};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
 
 use crate::config::Settings;
 use crate::engine::snapshot::AppSnapshot;
 use crate::engine::Engine;
+use crate::portable::Mode;
 use crate::updates::{UpdateStatus, Updates};
 
 type Shared<'a> = State<'a, Arc<Engine>>;
@@ -180,4 +181,26 @@ pub async fn check_for_updates(app: AppHandle, updates: State<'_, Arc<Updates>>)
 #[tauri::command]
 pub async fn install_update(updates: State<'_, Arc<Updates>>) -> Result<(), String> {
     updates.install().await
+}
+
+/// How this copy runs, for the companion window: a portable copy gets the release page instead of
+/// the installer, and a note on where its settings are.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstallMode {
+    portable: bool,
+    /// The `data` folder beside the executable; `None` when installed, or when that folder could not
+    /// be written and the installed copy's folders are used instead.
+    data_dir: Option<String>,
+}
+
+#[tauri::command]
+pub fn get_install_mode(mode: State<'_, Mode>) -> InstallMode {
+    InstallMode { portable: mode.is_portable(), data_dir: mode.data_dir().map(|d| d.display().to_string()) }
+}
+
+/// Opens the latest release on GitHub, where a portable copy finds its new zip.
+#[tauri::command]
+pub fn open_releases_page() -> Result<(), String> {
+    crate::portable::open_releases_page()
 }

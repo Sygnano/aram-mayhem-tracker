@@ -49,6 +49,21 @@ Only one copy runs at a time. Opening the app again brings up the window of the 
 when you click *Check for updates*. If there is one, *Download update* downloads it, checks its
 signature, installs it and restarts the app. Nothing is installed without that click.
 
+### Portable copy
+
+To run the app without installing it, download `ARAM Mayhem Tracker_<version>_x64-portable.zip`
+from the same release and extract it to a folder you own, such as one under *Documents* or on a USB
+drive, then run `aram-mayhem-tracker.exe`. The `portable` file next to it is what makes it portable:
+settings, logs and the game data cache are kept in a `data` folder beside the executable, so the
+folder can be moved or copied whole. If that folder cannot be written (a zip opened in place, or a
+folder under *Program Files*), the app warns and uses the installed copy's folders instead.
+
+A portable copy needs Microsoft Edge WebView2, which Windows 11 has and which the zip cannot add.
+WebView2 keeps its own browser data under `%LOCALAPPDATA%\dev.syg.aram-mayhem-tracker`. A portable
+copy checks for updates like an installed one, but *Open release page* replaces *Download update*:
+download the new zip and replace the folder's files with it, keeping `data`. *Start with Windows
+minimized* starts the copy from where it is, so untick it before moving the folder.
+
 To uninstall, use *Settings → Apps → Installed apps* in Windows. Your settings and logs stay in
 `%APPDATA%\dev.syg.aram-mayhem-tracker` and `%LOCALAPPDATA%\dev.syg.aram-mayhem-tracker`; delete
 those two folders to remove everything.
@@ -136,12 +151,13 @@ cargo test --workspace          # all Rust tests (run `pnpm --filter desktop bui
 Releases are built by GitHub Actions (`.github/workflows/release.yml`) from the version in the code.
 There is no tag to push by hand.
 
-1. Bump the version in `apps/desktop/src-tauri/tauri.conf.json`, `apps/desktop/package.json` and
-   `apps/desktop/src-tauri/Cargo.toml`, commit and push to `main`. The workflow fails if the three
-   differ.
+1. Run `pnpm bump <version>` (for example `pnpm bump 1.0.1`), then commit and push to `main`. It sets
+   the version in `apps/desktop/src-tauri/tauri.conf.json`, `apps/desktop/package.json`,
+   `apps/desktop/src-tauri/Cargo.toml` and `Cargo.lock`. The workflow fails if the first three differ,
+   and CI fails on a `Cargo.lock` left behind, since it builds with `--locked`.
 2. When that version has no release yet, draft or published, the workflow runs CI, builds the
    installer, signs the update files and creates a **draft** release `v<version>` with the installer,
-   its signature and `latest.json`. Any other push to `main` stops after the version check.
+   its signature, `latest.json` and the portable zip. Any other push to `main` stops after the version check.
 3. Review the draft on GitHub, write the notes, then **publish** it. GitHub creates the tag on the
    commit that was built, and installed copies see the update from then on.
 

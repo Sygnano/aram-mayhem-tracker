@@ -1,11 +1,11 @@
 name: Release
 
-# Releases follow the version in the code. Change it in apps/desktop/src-tauri/tauri.conf.json,
-# apps/desktop/package.json and apps/desktop/src-tauri/Cargo.toml (all three must agree) and push to
-# main: when that version has no release yet, this runs CI, builds the installer, signs the update
-# files and creates a **draft** release "v<version>" with the installer, its signature and
-# `latest.json`. No tag to push: GitHub creates the tag "v<version>" on the built commit when the
-# draft is published. Any other push to main stops after the first job. (A tag made by a workflow
+# Releases follow the version in the code. Change it with `pnpm bump <version>`, which sets
+# apps/desktop/src-tauri/tauri.conf.json, apps/desktop/package.json and
+# apps/desktop/src-tauri/Cargo.toml (all three must agree) and Cargo.lock, and push to main: when that version has no release yet, this runs CI, builds the installer, signs the update
+# files and creates a **draft** release "v<version>" with the installer, its signature,
+# `latest.json` and the portable zip. No tag to push: GitHub creates the tag "v<version>" on the
+# built commit when the draft is published. Any other push to main stops after the first job. (A tag made by a workflow
 # would not start another workflow, which is why the release is not driven by a tag.)
 #
 # Nothing reaches users until the draft is published by hand: the update feed is the latest
@@ -112,9 +112,34 @@ jobs:
             Download `ARAM Mayhem Tracker_*_x64-setup.exe` below and run it. Installed copies with
             this version or later can update from the app: *Updates*, then *Check for updates*.
 
+            Or, to run it without installing, download `ARAM Mayhem Tracker_*_x64-portable.zip`,
+            extract it to a folder you own and run `aram-mayhem-tracker.exe`. Its settings stay in
+            a `data` folder beside it. It needs Microsoft Edge WebView2, which Windows 11 has. To
+            update it, replace the folder's contents with the new zip's, keeping `data`.
+
             Before installing, read [Before you install](https://github.com/Sygnano/aram-mayhem-tracker#before-you-install):
             with *Manage item sets* on, the app replaces every item page on your account.
           releaseDraft: true
           # Not a pre-release: GitHub's "latest release" (what the update feed follows) skips those.
           prerelease: false
           uploadUpdaterJson: true
+
+      # The portable copy: the executable tauri-action just built (everything it needs is compiled
+      # in), with the marker file that turns portable mode on (`src-tauri/src/portable.rs`). It goes
+      # into the same draft. The installer's updater never touches it.
+      - name: Upload the portable zip
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          $version = $env:TAG.TrimStart('v')
+          $dir = 'ARAM Mayhem Tracker'
+          New-Item -ItemType Directory $dir | Out-Null
+          Copy-Item target/release/aram-mayhem-tracker.exe $dir
+          Copy-Item LICENSE "$dir/LICENSE.txt"
+          Copy-Item THIRD_PARTY_NOTICES.md $dir
+          New-Item -ItemType File "$dir/portable" | Out-Null
+          $zip = "ARAM Mayhem Tracker_${version}_x64-portable.zip"
+          Compress-Archive -Path $dir -DestinationPath $zip
+          gh release upload $env:TAG $zip --clobber

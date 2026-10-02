@@ -5,6 +5,7 @@ mod config;
 mod engine;
 mod logging;
 mod overlay;
+mod portable;
 mod shell;
 mod updates;
 
@@ -65,18 +66,28 @@ pub fn run() {
             commands::get_update_status,
             commands::check_for_updates,
             commands::install_update,
+            commands::get_install_mode,
+            commands::open_releases_page,
         ])
         .setup(|app| {
             let paths = app.path();
+            let mode = portable::Mode::detect();
+            // A portable copy keeps all three beside its executable; see `portable`.
+            let (log_dir, config_dir, cache_dir) = match mode.data_dir() {
+                Some(data) => (Some(data.join("logs")), data.to_path_buf(), data.join("cache")),
+                None => (paths.app_log_dir().ok(), paths.app_config_dir()?, paths.app_cache_dir()?),
+            };
             // First, so that everything after it, the engine's own start included, is on record.
-            let log_file = paths.app_log_dir().ok().and_then(|dir| logging::init(&dir));
-            let config_path = paths.app_config_dir()?.join("config.json");
-            let cache_dir = paths.app_cache_dir()?.join("cdragon");
+            let log_file = log_dir.and_then(|dir| logging::init(&dir));
+            log::info!("install mode: {mode:?}");
+            let config_path = config_dir.join("config.json");
+            let cache_dir = cache_dir.join("cdragon");
             let engine = Arc::new(Engine::new(config_path, cache_dir));
             engine.lock().log_file = log_file;
             app.manage(engine.clone());
-            let updates = Arc::new(updates::Updates::default());
+            let updates = Arc::new(updates::Updates::new(mode.is_portable()));
             app.manage(updates.clone());
+            app.manage(mode);
 
             engine::spawn_task(&engine, "the League client connection", engine::client::run(engine.clone()));
             engine::spawn_task(&engine, "the game data retry", engine::client::static_retry_loop(engine.clone()));

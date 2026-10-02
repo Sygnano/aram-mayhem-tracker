@@ -351,6 +351,14 @@ export type UpdateStatus =
   | { state: "installing"; version: string }
   | { state: "failed"; message: string };
 
+/** How this copy runs. Mirrors `commands::InstallMode` in the backend. */
+export interface InstallMode {
+  /** Started from the release zip: updates come from the release page, not the installer. */
+  portable: boolean;
+  /** The `data` folder beside the executable, when settings are kept there. */
+  dataDir: string | null;
+}
+
 /** The chat statuses the companion window can set. Mirrors `league_api::lcu::ChatStatus`. */
 export type ChatStatus = "online" | "away" | "offline";
 

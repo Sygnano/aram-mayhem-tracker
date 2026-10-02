@@ -9,6 +9,9 @@
 //! start, if the setting is on), shows what came back, and offers a download only when there is
 //! something newer. Installing runs the NSIS installer in passive mode, which closes the app, so it
 //! is never started on its own: it would end whatever the user was doing, a game included.
+//!
+//! A portable copy checks the same feed but never installs: the installer would put a second copy
+//! beside it. The companion window offers the release page instead (`portable`).
 
 use std::sync::Mutex;
 
@@ -51,15 +54,14 @@ pub enum UpdateStatus {
 pub struct Updates {
     status: Mutex<UpdateStatus>,
     found: tokio::sync::Mutex<Option<Update>>,
-}
-
-impl Default for Updates {
-    fn default() -> Self {
-        Self { status: Mutex::new(UpdateStatus::Idle), found: tokio::sync::Mutex::new(None) }
-    }
+    portable: bool,
 }
 
 impl Updates {
+    pub fn new(portable: bool) -> Self {
+        Self { status: Mutex::new(UpdateStatus::Idle), found: tokio::sync::Mutex::new(None), portable }
+    }
+
     pub fn status(&self) -> UpdateStatus {
         self.status.lock().unwrap_or_else(|e| e.into_inner()).clone()
     }
@@ -109,6 +111,9 @@ impl Updates {
     /// Downloads the update the last check found, verifies it and runs its installer, which closes
     /// the app. Returns only if that fails.
     pub async fn install(&self) -> Result<(), String> {
+        if self.portable {
+            return Err("a portable copy is updated by downloading the new zip from the release page".into());
+        }
         let mut found = self.found.lock().await;
         let Some(update) = found.take() else {
             return Err("no update to install: check for updates first".into());

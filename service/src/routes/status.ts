@@ -20,12 +20,17 @@ const Nullable = <T extends Parameters<typeof Type.Union>[0][number]>(schema: T)
 
 const Health = Type.Object({
   ok: Type.Boolean(),
-  /** aramkit patch label, e.g. "16.19". `null` before the first successful `versions.json` read. */
+  /** aramkit patch label of the version served, e.g. "16.19". `null` before the first crawl completes. */
   patch: Nullable(Type.String()),
   dataDate: Nullable(Type.String()),
   /** Seconds since we first saw the current build. Large and growing means the poller is stuck. */
   ageSeconds: Nullable(Type.Integer()),
   championsCached: Type.Integer(),
+  /**
+   * The version `versions.json` last named, while the crawler is still fetching it; `null` once it
+   * is the one served. Large `ageSeconds` with this set means the crawler is stuck.
+   */
+  crawling: Nullable(Type.String()),
   uptimeSeconds: Type.Integer(),
 });
 
@@ -50,6 +55,7 @@ export const healthRoute: FastifyPluginAsyncTypebox<StatusOptions> = async (
   app.get("/v1/health", { schema: { response: { 200: Health } } }, async () => {
     store.ping();
     const latest = store.latestVersion();
+    const target = store.crawlTarget();
     const now = nowUnix();
     return {
       ok: true,
@@ -57,6 +63,7 @@ export const healthRoute: FastifyPluginAsyncTypebox<StatusOptions> = async (
       dataDate: latest?.dataDate ?? null,
       ageSeconds: latest ? now - latest.firstSeenAt : null,
       championsCached: latest ? store.championsCached(latest.dataPath) : 0,
+      crawling: target !== null && target.crawledAt === null ? target.dataPath : null,
       uptimeSeconds: now - startedAt,
     };
   });
@@ -75,11 +82,11 @@ export const patchRoute: FastifyPluginAsyncTypebox<StatusOptions> = async (app, 
   });
 };
 
-/** The patch every data endpoint answers for, or a 503 before the first `versions.json` read. */
+/** The patch every data endpoint answers for, or a 503 before the first crawl completes. */
 export function currentVersion(store: Store): LatestVersion {
   const latest = store.latestVersion();
   if (latest === null) {
-    throw new UnavailableError("no patch has been fetched yet");
+    throw new UnavailableError("no data version has been crawled yet");
   }
   return latest;
 }

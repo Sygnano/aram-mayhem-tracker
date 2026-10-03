@@ -51,6 +51,9 @@ pub struct Settings {
     /// Ask GitHub Releases for a newer version when the app starts. Nothing is installed
     /// without a click either way.
     pub check_updates_on_startup: bool,
+    /// Look for newer statistics every 24 hours while the app runs. They are checked at every start
+    /// whatever this says, and *Update now* checks at once (D-090).
+    pub auto_update_statistics: bool,
 }
 
 impl Default for Settings {
@@ -65,6 +68,7 @@ impl Default for Settings {
             keep_in_tray: false,
             start_minimized: false,
             check_updates_on_startup: true,
+            auto_update_statistics: true,
         }
     }
 }
@@ -208,6 +212,7 @@ mod tests {
             keys,
             [
                 "autoAccept",
+                "autoUpdateStatistics",
                 "checkUpdatesOnStartup",
                 "keepInTray",
                 "leagueDir",

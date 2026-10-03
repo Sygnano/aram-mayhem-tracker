@@ -22,6 +22,7 @@ use std::time::Duration;
 use aramkit_client::PoolResponse;
 use mayhem_core::ranking::{ranks_within_blocks, Block, Grade, Rarity};
 
+use super::champion::ChampionData;
 use super::snapshot::{OfferStats, PoolStats, RankedAugment};
 use super::{Engine, EngineState};
 
@@ -55,6 +56,8 @@ pub struct StatsState {
     pub error: Option<String>,
     /// An offer is on screen but the champion could not be identified, so no lookup is possible.
     pub champion_unknown: bool,
+    /// The last question that found no pool, so the failure is logged once rather than every tick.
+    failed_key: Option<StatsKey>,
 }
 
 pub fn spawn(engine: Arc<Engine>) {
@@ -85,8 +88,8 @@ fn update(state: &mut EngineState) {
 
     let found = key.rarity.and_then(|rarity| Some((rarity, state.champion.pool(key.champion_id, rarity, key.stage)?)));
     let Some((rarity, pool)) = found else {
-        // The champ select prefetch has not landed, or it failed. Say so rather than showing
-        // nothing; `champion.rs` keeps trying.
+        // The champion's statistics are not read yet, or the dataset has nothing for this offer.
+        // Say so rather than showing nothing, and log what was held (`lookup_failure`).
         state.stats.loading = state.champion.loading;
         state.stats.error = state
             .champion
@@ -96,6 +99,11 @@ fn update(state: &mut EngineState) {
         state.stats.offer = None;
         state.stats.pool = None;
         state.stats.upgraded_pool = None;
+        if state.stats.failed_key.as_ref() != Some(&key) {
+            let line = lookup_failure(&key, &state.champion);
+            state.log_event(line);
+            state.stats.failed_key = Some(key);
+        }
         return;
     };
     // A card the offer's own pool does not have may be a golden reroll: look one tier up.
@@ -112,10 +120,32 @@ fn update(state: &mut EngineState) {
     let offer = offer_from_pools(&key, &pool, upgraded_pool.as_ref());
     state.stats.loading = false;
     state.stats.error = None;
+    state.stats.failed_key = None;
     state.stats.offer = Some(offer);
     state.stats.pool = Some(pool);
     state.stats.upgraded_pool = upgraded_pool;
     state.stats.key = Some(key);
+}
+
+/// The log line for an offer no pool answers: the question, and what was held when it was asked.
+///
+/// This is the only record of why every card on screen showed no numbers, so it says everything the
+/// lookup depended on.
+fn lookup_failure(key: &StatsKey, champion: &ChampionData) -> String {
+    let mut held: Vec<String> = champion.pools.keys().map(|(r, s)| format!("{}/{s}", r.as_str())).collect();
+    held.sort();
+    format!(
+        "no pool for the offer on screen: champion {} stage {} rarity {} cards {:?}; holding champion {:?} \
+         (loading: {}, error: {:?}), pools [{}]",
+        key.champion_id,
+        key.stage,
+        key.rarity.map_or("none", Rarity::as_str),
+        key.augments,
+        champion.champion_id,
+        champion.loading,
+        champion.error,
+        held.join(" "),
+    )
 }
 
 /// One rarity's pool as the overlay shows it: every row with its block, its place in that block
@@ -357,18 +387,12 @@ mod tests {
         assert_eq!(offer.ranking, [10, 90, 20, 91], "this champion's numbers, then the fallback, then no data");
     }
 
-    /// The screenshot this was built for: a Gold offer on Aurelion Sol where the golden reroll
-    /// turned the middle card into a Prismatic one.
-    #[test]
-    fn a_golden_reroll_is_answered_from_the_pool_one_tier_up() {
-        use crate::engine::champion::ChampionData;
+    /// Aurelion Sol in a Mayhem game, with these cards open in stage 1. Champion data is left to the
+    /// test.
+    fn aurelion_sol_offer(st: &mut EngineState, slots: [Option<i64>; 3]) {
         use crate::engine::GameSession;
         use league_api::lcd::{ActivePlayer, AllGameData, GameData, Player};
         use mayhem_core::augments::{OfferReading, OfferTracker};
-
-        let dir = std::env::temp_dir().join(format!("mayhem-stats-test-{}", std::process::id()));
-        let engine = Engine::new(dir.join("config.json"), dir.join("cache"));
-        let mut st = engine.lock();
 
         let mut data = static_data(
             "fr_fr",
@@ -381,22 +405,6 @@ mod tests {
         );
         data.champion_ids = [(static_data::champions::normalise_key("AurelionSol"), 136)].into();
         st.set_static_data(data);
-
-        let pool = |rarity: Rarity, augments| PoolResponse {
-            rarity: rarity.as_str().into(),
-            stage: Some(1),
-            augments,
-            ..Default::default()
-        };
-        st.champion = ChampionData {
-            champion_id: Some(136),
-            pools: [
-                ((Rarity::Gold, 1), pool(Rarity::Gold, vec![augment(10, 1.9), augment(20, 0.2)])),
-                ((Rarity::Prismatic, 1), pool(Rarity::Prismatic, vec![augment(91, 6.0), augment(90, 3.0)])),
-            ]
-            .into(),
-            ..Default::default()
-        };
 
         let me = Player {
             riot_id: "Me#1".into(),
@@ -411,13 +419,36 @@ mod tests {
             ..Default::default()
         };
         let mut offers = OfferTracker::default();
-        let reading = OfferReading { slots: [Some(20), Some(90), Some(10)] };
+        let reading = OfferReading { slots };
         for t in 0..3 {
             offers.feed(20.0 + f64::from(t), reading, 1);
         }
         assert!(offers.current().is_some(), "the tracker should have opened the offer");
         st.game =
             Some(GameSession { id: 1, clock: Default::default(), last_game_time: 20.0, data, is_mayhem: true, offers });
+    }
+
+    fn stage_pool(rarity: Rarity, stage: u8, augments: Vec<AugmentInfo>) -> PoolResponse {
+        PoolResponse { rarity: rarity.as_str().into(), stage: Some(stage), augments, ..Default::default() }
+    }
+
+    /// The screenshot this was built for: a Gold offer on Aurelion Sol where the golden reroll
+    /// turned the middle card into a Prismatic one.
+    #[test]
+    fn a_golden_reroll_is_answered_from_the_pool_one_tier_up() {
+        let dir = std::env::temp_dir().join(format!("mayhem-stats-test-{}", std::process::id()));
+        let engine = Engine::new(dir.join("config.json"), dir.join("cache"));
+        let mut st = engine.lock();
+        aurelion_sol_offer(&mut st, [Some(20), Some(90), Some(10)]);
+        st.champion = ChampionData {
+            champion_id: Some(136),
+            pools: [
+                ((Rarity::Gold, 1), stage_pool(Rarity::Gold, 1, vec![augment(10, 1.9), augment(20, 0.2)])),
+                ((Rarity::Prismatic, 1), stage_pool(Rarity::Prismatic, 1, vec![augment(91, 6.0), augment(90, 3.0)])),
+            ]
+            .into(),
+            ..Default::default()
+        };
 
         update(&mut st);
 
@@ -429,5 +460,35 @@ mod tests {
         assert_eq!(up.augments[1].info.name.as_deref(), Some("Canon de verre"), "localised like the main pool");
         let offer = st.stats.offer.as_ref().unwrap();
         assert_eq!(offer.ranking, [90, 10, 20], "the upgraded card has numbers and is ranked with the others");
+    }
+
+    /// "stats unavailable" on every card used to leave nothing behind in the log.
+    #[test]
+    fn an_offer_no_pool_answers_is_logged_once_with_what_was_held() {
+        let dir = std::env::temp_dir().join(format!("mayhem-stats-miss-{}", std::process::id()));
+        let engine = Engine::new(dir.join("config.json"), dir.join("cache"));
+        let mut st = engine.lock();
+        aurelion_sol_offer(&mut st, [Some(20), Some(10), None]);
+        // Stage 2 only: nothing answers a stage 1 offer.
+        st.champion = ChampionData {
+            champion_id: Some(136),
+            pools: [((Rarity::Gold, 2), stage_pool(Rarity::Gold, 2, vec![augment(10, 1.9)]))].into(),
+            ..Default::default()
+        };
+
+        for _ in 0..5 {
+            update(&mut st);
+        }
+
+        assert!(st.stats.pool.is_none());
+        assert_eq!(st.stats.error.as_deref(), Some("no data for this champion yet"));
+        let lines: Vec<_> = st.events.iter().filter(|e| e.starts_with("no pool for the offer")).collect();
+        assert_eq!(lines.len(), 1, "once, not every tick: {lines:?}");
+        assert_eq!(
+            *lines[0],
+            "no pool for the offer on screen: champion 136 stage 1 rarity gold cards [20, 10]; holding champion "
+                .to_owned()
+                + "Some(136) (loading: false, error: None), pools [gold/2]"
+        );
     }
 }

@@ -268,6 +268,22 @@ export interface Snapshot {
     offline: boolean;
     error: string | null;
   };
+  /** The downloaded statistics every champion's numbers come from (D-090). Nothing is shown until
+   *  one is loaded. Mirrors `snapshot::DatasetView`. */
+  dataset: {
+    loaded: boolean;
+    patch: string | null;
+    dataDate: string | null;
+    champions: number;
+    /** Unix seconds. */
+    downloadedAt: number | null;
+    /** Unix seconds; null since the app started. */
+    checkedAt: number | null;
+    /** `[received, total]` bytes while a download runs. */
+    downloading: [number, number | null] | null;
+    /** Why the last update failed. With a dataset loaded, the app carries on with it. */
+    error: string | null;
+  };
   /** The stat anvil offer on screen, ranked for the champion. */
   anvil: AnvilView;
   diagnostics: {
@@ -339,6 +355,8 @@ export interface AppConfig {
   startMinimized: boolean;
   /** Ask GitHub Releases for a newer version when the app starts. Nothing installs without a click. */
   checkUpdatesOnStartup: boolean;
+  /** Look for newer statistics every 24 hours. They are checked at every start regardless. */
+  autoUpdateStatistics: boolean;
 }
 
 /** Where the update check stands. Mirrors `updates::UpdateStatus` in the backend. */

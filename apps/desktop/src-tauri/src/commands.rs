@@ -40,6 +40,7 @@ pub struct SettingsPatch {
     keep_in_tray: Option<bool>,
     start_minimized: Option<bool>,
     check_updates_on_startup: Option<bool>,
+    auto_update_statistics: Option<bool>,
 }
 
 #[tauri::command]
@@ -75,6 +76,9 @@ pub fn save_settings(app: AppHandle, engine: Shared<'_>, settings: SettingsPatch
         if let Some(on) = settings.check_updates_on_startup {
             cfg.check_updates_on_startup = on;
         }
+        if let Some(on) = settings.auto_update_statistics {
+            cfg.auto_update_statistics = on;
+        }
         let shell = (cfg.keep_in_tray, cfg.start_minimized);
         st.settings_dirty = true;
         shell
@@ -82,6 +86,13 @@ pub fn save_settings(app: AppHandle, engine: Shared<'_>, settings: SettingsPatch
     engine.save_settings_if_dirty();
     crate::shell::set_tray_visible(&app, keep_in_tray);
     crate::shell::sync_autostart(&app, start_minimized)
+}
+
+/// Looks for newer statistics now, whatever the automatic update says. The download runs in the
+/// background; the snapshot follows it.
+#[tauri::command]
+pub fn update_statistics(engine: Shared<'_>) {
+    crate::engine::dataset::request_update(&mut engine.lock());
 }
 
 /// Swaps the local player's champion for one on the champ-select bench.

@@ -6,6 +6,7 @@ import { Type } from "typebox";
 import type { Data } from "../data.ts";
 import type { Store } from "../db/store.ts";
 import { roundHalfAway } from "../domain/anvils.ts";
+import type { ChampionTable } from "../domain/augments.ts";
 import { type DamageProfile, teamDamage } from "../domain/damage.ts";
 import { BadRequestError, NotFoundError, upstreamStatus } from "../errors.ts";
 import { splitIds } from "./augments.ts";
@@ -124,25 +125,7 @@ export const championRoutes: FastifyPluginAsyncTypebox<ChampionRouteOptions> = a
   app.get("/v1/champions", { schema: { response: { 200: ChampionsResponse } } }, async () => {
     const version = currentVersion(store);
     const table = await data.championTable(version.dataPath);
-
-    const champions = Object.values(table.champions)
-      .map((c) => ({
-        id: c.id,
-        rank: c.rank,
-        tier: c.tier === "" ? null : c.tier,
-        winRate: c.winRate,
-        pickRate: c.pickRate,
-        sampleCount: c.sampleCount,
-      }))
-      // Ties are ordered by id, so every client sees the same order.
-      .sort((a, b) => a.rank - b.rank || a.id - b.id);
-
-    return {
-      patch: version.version,
-      dataDate: version.dataDate,
-      poolSize: table.poolSize,
-      champions,
-    };
+    return { patch: version.version, dataDate: version.dataDate, ...championTableBody(table) };
   });
 
   app.get(
@@ -222,6 +205,22 @@ export const championRoutes: FastifyPluginAsyncTypebox<ChampionRouteOptions> = a
 };
 
 // -- helpers ---------------------------------------------------------------------------------------
+
+/** The champion table as `/v1/champions` sends it, without the patch fields. */
+export function championTableBody(table: ChampionTable) {
+  const champions = Object.values(table.champions)
+    .map((c) => ({
+      id: c.id,
+      rank: c.rank,
+      tier: c.tier === "" ? null : c.tier,
+      winRate: c.winRate,
+      pickRate: c.pickRate,
+      sampleCount: c.sampleCount,
+    }))
+    // Ties are ordered by id, so every client sees the same order.
+    .sort((a, b) => a.rank - b.rank || a.id - b.id);
+  return { poolSize: table.poolSize, champions };
+}
 
 /** Four decimals, like upstream's own rates: 0.8303 is 83.03%. */
 function damageSplit(profile: DamageProfile) {

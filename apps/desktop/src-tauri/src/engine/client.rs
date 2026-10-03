@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 
 use league_api::lcu::{GameflowPhase, LcuClient, QueueInfo};
 use league_api::{lockfile, ApiError};
-use static_data::CDragon;
+use static_data::{CDragon, StaticData};
 
 use super::Engine;
 
@@ -273,16 +273,47 @@ pub fn ensure_static_data(engine: &Arc<Engine>, force: bool) {
 }
 
 /// Retry backoff after a failed static-data load, so the client loop does not hammer CDragon.
+///
+/// Also retries the champion index on its own. The static data loads without it, because offers can
+/// still be read and named; but with no index no champion resolves to an id, and every offer shows
+/// "champion unknown" until it comes back.
 pub async fn static_retry_loop(engine: Arc<Engine>) {
     loop {
         tokio::time::sleep(Duration::from_secs(60)).await;
-        let failed = {
+        let (failed, without_champions) = {
             let st = engine.lock();
-            st.static_data.is_none() && !st.static_loading && st.static_error.is_some()
+            let failed = st.static_data.is_none() && !st.static_loading && st.static_error.is_some();
+            let without = st.static_data.as_ref().filter(|d| d.champion_ids.is_empty()).map(|d| d.patch.clone());
+            (failed, without)
         };
         if failed {
             ensure_static_data(&engine, true);
         }
+        if let Some(patch) = without_champions {
+            retry_champion_index(&engine, &patch).await;
+        }
+    }
+}
+
+async fn retry_champion_index(engine: &Arc<Engine>, patch: &str) {
+    let result = CDragon::new(engine.cache_dir.clone()).champions(patch).await;
+    let mut st = engine.lock();
+    match result {
+        Ok((ids, names)) => {
+            // The static data may have been replaced while this ran (a locale change reloads it).
+            // Only fill in the index it was fetched for, and only if it is still missing.
+            let Some(current) = st.static_data.as_ref().filter(|d| d.patch == patch && d.champion_ids.is_empty())
+            else {
+                return;
+            };
+            let mut data = StaticData::clone(current);
+            data.champion_ids = ids;
+            data.champion_names = names;
+            st.static_data = Some(Arc::new(data));
+            st.log_event(format!("champion index for {patch} loaded on retry"));
+        }
+        // Debug only: offline this fails every minute, and the first failure is already logged.
+        Err(e) => log::debug!("champion index for {patch} still unavailable: {e}"),
     }
 }
 

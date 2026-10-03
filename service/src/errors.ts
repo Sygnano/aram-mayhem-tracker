@@ -53,6 +53,13 @@ export class ForbiddenError extends ApiError {
   }
 }
 
+/** The request is about a state the service is no longer in: a crawl for a version since replaced. */
+export class ConflictError extends ApiError {
+  constructor(detail: string) {
+    super(409, `conflict: ${detail}`);
+  }
+}
+
 /** The service-wide request budget is spent. The app keeps what it has and asks again. */
 export class TooManyRequestsError extends ApiError {
   constructor() {

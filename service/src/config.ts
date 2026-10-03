@@ -15,12 +15,13 @@ export interface Config {
   port: number;
   /** SQLite file. On Railway this lives on the mounted volume, so it survives deploys. */
   databasePath: string;
-  /** Root of aramkit's static data host. Overridable so tests can point at a local fixture server. */
+  /**
+   * Root of aramkit's static data host, which only the crawler fetches from. Overridable so tests
+   * can point at a local fixture server.
+   */
   aramkitBase: string;
   /** Root of the CommunityDragon host, used for augment rarity, names and icons. */
   cdragonBase: string;
-  /** How often to re-read `versions.json`, the only mutable document upstream. */
-  versionsPollMs: number;
   /**
    * Sent on every upstream request. Identifies the app and gives a contact address, because the
    * aramkit developer approved this use and should be able to reach us if it misbehaves.
@@ -59,7 +60,6 @@ export function configFromEnv(env: Env = process.env): Config {
     databasePath: stringEnv(env, "DATABASE_PATH", "/data/cache.db"),
     aramkitBase: trimSlashes(stringEnv(env, "ARAMKIT_BASE", "https://data.aramkit.com")),
     cdragonBase: trimSlashes(stringEnv(env, "CDRAGON_BASE", "https://raw.communitydragon.org")),
-    versionsPollMs: intEnv(env, "VERSIONS_POLL_SECS", 6 * 60 * 60) * 1000,
     userAgent: stringEnv(
       env,
       "UPSTREAM_USER_AGENT",
@@ -71,6 +71,42 @@ export function configFromEnv(env: Env = process.env): Config {
     burstPerIp: intEnv(env, "BURST_PER_IP", 20),
     requestsPerSecond: intEnv(env, "REQUESTS_PER_SECOND", 200),
     logLevel: stringEnv(env, "LOG_LEVEL", "info"),
+  };
+}
+
+/** The crawler's configuration (`scripts/crawl.ts`), from the same environment conventions. */
+export interface CrawlerConfig {
+  /**
+   * The web service to send documents to. On Railway, its private address, such as
+   * `http://aramkit-cache.railway.internal:8080`. Required.
+   */
+  serviceUrl: string;
+  /** The web service's `ADMIN_TOKEN`. Required: every crawl route needs it. */
+  adminToken: string;
+  aramkitBase: string;
+  userAgent: string;
+  /** Time between two requests to aramkit. Five seconds unless set. */
+  intervalMs: number;
+  /** Failures in a row before the run gives up; the next cron run picks up where it stopped. */
+  maxFailures: number;
+}
+
+export function crawlerConfigFromEnv(env: Env = process.env): CrawlerConfig {
+  const service = configFromEnv({ ...env, PORT: undefined });
+  const serviceUrl = trimSlashes(stringEnv(env, "SERVICE_URL", ""));
+  if (serviceUrl === "") {
+    throw new Error("SERVICE_URL is not set: the crawler needs the web service's address");
+  }
+  if (service.adminToken === null) {
+    throw new Error("ADMIN_TOKEN is not set: the crawler needs the web service's admin token");
+  }
+  return {
+    serviceUrl,
+    adminToken: service.adminToken,
+    aramkitBase: service.aramkitBase,
+    userAgent: service.userAgent,
+    intervalMs: intEnv(env, "CRAWL_INTERVAL_SECS", 5) * 1000,
+    maxFailures: intEnv(env, "CRAWL_MAX_FAILURES", 5),
   };
 }
 

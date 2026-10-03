@@ -1,3 +1,4 @@
+import { overlayReady } from "../readiness";
 import { useSnapshot } from "../useSnapshot";
 import { AnvilLabels, CardPanels, RarityList } from "./overlay/AugmentPanels";
 import { ChampSelectBlocks } from "./overlay/ChampSelectBlocks";
@@ -15,7 +16,8 @@ import { ChampSelectBlocks } from "./overlay/ChampSelectBlocks";
  */
 export function Overlay() {
   const s = useSnapshot();
-  if (!s) return null;
+  // Nothing until the statistics are downloaded and the screen reader is up (D-090).
+  if (!s || !overlayReady(s)) return null;
   switch (s.overlay.target) {
     case "client":
       return (

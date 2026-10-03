@@ -23,6 +23,7 @@ describe("/v1/health", () => {
       dataDate: null,
       ageSeconds: null,
       championsCached: 0,
+      crawling: null,
       uptimeSeconds: body.uptimeSeconds,
     });
     expect(body.uptimeSeconds).toBeGreaterThanOrEqual(5);
@@ -58,14 +59,14 @@ describe("/v1/health", () => {
 });
 
 describe("/v1/patch", () => {
-  it("is a 503 with Retry-After until the first versions.json read", async () => {
+  it("is a 503 with Retry-After until the first crawl completes", async () => {
     const { app: a } = await app();
     const response = await a.inject("/v1/patch");
 
     expect(response.statusCode).toBe(503);
     expect(response.headers["retry-after"]).toBe("30");
     expect(response.json()).toEqual({
-      error: "data not available yet: no patch has been fetched yet",
+      error: "data not available yet: no data version has been crawled yet",
       retryAfter: 30,
     });
   });

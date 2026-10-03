@@ -1,15 +1,18 @@
 /**
- * The upstream documents the service uses, each read from the store first and fetched on a miss.
+ * The upstream documents the service uses.
  *
- * Two rules shape this module. Everything under an aramkit `dataPath` is immutable, so a document we
- * hold is never revalidated. And a miss is fetched once however many requests want it: a
- * hundred players locking the same champion at once produce one upstream request, not a hundred.
- * The fetch belongs to no request, so it runs to the end and fills the store even if every request
- * waiting on it has gone away.
+ * aramkit documents are only ever read from the store. The crawler (`scripts/crawl.ts`) fetches them
+ * ahead of time and a data version is served only once it holds them all (D-090), so a request never
+ * waits on aramkit, and aramkit only ever sees the crawler's slow and steady pace.
+ *
+ * CommunityDragon documents are still fetched on a miss. Two rules shape that: everything is pinned,
+ * so a document we hold is never revalidated; and a miss is fetched once however many requests want
+ * it. The fetch belongs to no request, so it runs to the end and fills the store even if every
+ * request waiting on it has gone away.
  */
 
 import { aramkitKey, cdragonKey, type DocKey, type Store } from "../db/store.ts";
-import { UpstreamStatusError } from "../errors.ts";
+import { UnavailableError, UpstreamStatusError } from "../errors.ts";
 import type { UpstreamClient } from "./client.ts";
 
 /** Documents we fetch. Each is the `kind` column of its rows. */
@@ -20,26 +23,47 @@ export const CHERRY_AUGMENTS = "cherry-augments";
 export const AUGMENT_LISTS = "augment-lists";
 export const ANVIL_MAP = "map12-bin";
 
+/** Where an aramkit document lives, under aramkit's base URL. */
+export function aramkitPath(dataPath: string, kind: string, key: string): string {
+  return kind === CHAMPION_DETAILS
+    ? `${dataPath}/stats/all/${kind}/${key}.json`
+    : `${dataPath}/stats/all/${kind}.json`;
+}
+
 export interface DocumentsOptions {
   store: Store;
   client: UpstreamClient;
-  aramkitBase: string;
   cdragonBase: string;
 }
 
 export class Documents {
   readonly #store: Store;
   readonly #client: UpstreamClient;
-  readonly #aramkitBase: string;
   readonly cdragonBase: string;
   /** Fetches in progress, by key. Exposed read-only so tests can see the map empties. */
   readonly inFlight = new Map<string, Promise<Buffer>>();
 
-  constructor({ store, client, aramkitBase, cdragonBase }: DocumentsOptions) {
+  constructor({ store, client, cdragonBase }: DocumentsOptions) {
     this.#store = store;
     this.#client = client;
-    this.#aramkitBase = aramkitBase;
     this.cdragonBase = cdragonBase;
+  }
+
+  /**
+   * A crawled aramkit document. One the crawler found missing upstream answers as aramkit did, 404;
+   * one it has not reached yet is unavailable, which only happens for a version not served yet.
+   */
+  #crawled(key: DocKey): Promise<Buffer> {
+    const held = this.#store.getDoc(key);
+    if (held !== null) {
+      return Promise.resolve(held);
+    }
+    const path = aramkitPath(key.dataPath, key.kind, key.key);
+    return Promise.reject(
+      this.#store.isAbsent(key)
+        ? new UpstreamStatusError(404, path, "(recorded by the crawler)")
+        : new UnavailableError(`${path} has not been crawled`),
+    );
   }
 
   /**
@@ -94,17 +118,11 @@ export class Documents {
   // -- the documents we actually want ---------------------------------------------------------
 
   championDetails(dataPath: string, championId: number): Promise<Buffer> {
-    return this.ensure(
-      aramkitKey(dataPath, CHAMPION_DETAILS, String(championId)),
-      `${this.#aramkitBase}/${dataPath}/stats/all/champion-details/${championId}.json`,
-    );
+    return this.#crawled(aramkitKey(dataPath, CHAMPION_DETAILS, String(championId)));
   }
 
   augmentRankings(dataPath: string): Promise<Buffer> {
-    return this.ensure(
-      aramkitKey(dataPath, AUGMENT_RANKINGS),
-      `${this.#aramkitBase}/${dataPath}/stats/all/augment-rankings.json`,
-    );
+    return this.#crawled(aramkitKey(dataPath, AUGMENT_RANKINGS));
   }
 
   /**
@@ -112,10 +130,7 @@ export class Documents {
    * per build, so one fetch per patch serves every champion on the screen.
    */
   championRankings(dataPath: string): Promise<Buffer> {
-    return this.ensure(
-      aramkitKey(dataPath, CHAMPION_RANKINGS),
-      `${this.#aramkitBase}/${dataPath}/stats/all/champion-rankings.json`,
-    );
+    return this.#crawled(aramkitKey(dataPath, CHAMPION_RANKINGS));
   }
 
   /**

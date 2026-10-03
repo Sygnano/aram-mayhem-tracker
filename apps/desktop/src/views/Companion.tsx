@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useSnapshot } from "../useSnapshot";
 import { useConfig } from "../useConfig";
+import { progress, readiness } from "../readiness";
 import type { ChatStatus, InstallMode, Snapshot, UpdateStatus } from "../types";
 import { Settings } from "./Settings";
 
@@ -10,33 +11,6 @@ export function Companion() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   if (!s) return <div className="page">Starting…</div>;
   return settingsOpen ? <Settings s={s} onBack={() => setSettingsOpen(false)} /> : <Home s={s} onSettings={() => setSettingsOpen(true)} />;
-}
-
-type Readiness = { level: "ok" | "waiting" | "error"; text: string };
-
-/**
- * Is the helper ready to work? The first thing in its way, in the order it needs them: the screen
- * reader, the augment names, then the client. A closed client is waiting, not a fault.
- */
-function readiness(s: Snapshot): Readiness {
-  // A stopped part of the backend comes first: everything below it may be reading stale state.
-  if (s.diagnostics.faults.length > 0) {
-    return { level: "error", text: `${s.diagnostics.faults[0]}. Restart the app.` };
-  }
-  if (!s.vision.available) {
-    // No reason yet means the reader's thread has not reported in, which only lasts a moment.
-    return s.vision.unavailableReason
-      ? { level: "error", text: s.vision.unavailableReason }
-      : { level: "waiting", text: "Starting…" };
-  }
-  if (!s.staticData.loaded) {
-    return s.staticData.error
-      ? { level: "error", text: `Game data did not load: ${s.staticData.error}` }
-      : { level: "waiting", text: "Loading game data…" };
-  }
-  if (s.client.error) return { level: "error", text: s.client.error };
-  if (!s.client.connected) return { level: "waiting", text: "Waiting for the League client" };
-  return { level: "ok", text: "OK" };
 }
 
 function Home({ s, onSettings }: { s: Snapshot; onSettings: () => void }) {
@@ -93,6 +67,42 @@ function Home({ s, onSettings }: { s: Snapshot; onSettings: () => void }) {
 
       {cfg && (
         <>
+          <section>
+            <h2>Statistics</h2>
+            <dl>
+              <dt>Data</dt>
+              <dd>
+                {s.dataset.loaded
+                  ? `${s.dataset.patch} · ${s.dataset.dataDate} · ${s.dataset.champions} champions`
+                  : "Not downloaded yet"}
+              </dd>
+              {s.dataset.downloadedAt !== null && (
+                <>
+                  <dt>Downloaded</dt>
+                  <dd>{when(s.dataset.downloadedAt)}</dd>
+                </>
+              )}
+            </dl>
+            <div className="checks">
+              <Check
+                label="Update statistics automatically"
+                checked={cfg.autoUpdateStatistics}
+                onChange={(on) => update({ autoUpdateStatistics: on })}
+              >
+                Looks for newer ones every 24 hours. They are always checked when the app starts.
+              </Check>
+              <div className="updates">
+                <button
+                  onClick={() => invoke<void>("update_statistics").catch(console.error)}
+                  disabled={s.dataset.downloading !== null}
+                >
+                  Update now
+                </button>
+                <StatisticsLine s={s} />
+              </div>
+            </div>
+          </section>
+
           <section>
             <h2>Overlay options</h2>
             <div className="checks">
@@ -160,6 +170,23 @@ function Home({ s, onSettings }: { s: Snapshot; onSettings: () => void }) {
       )}
     </div>
   );
+}
+
+/** Where the last statistics update stands. Silent before the first check of this run. */
+function StatisticsLine({ s }: { s: Snapshot }) {
+  const d = s.dataset;
+  if (d.downloading) return <p className="muted">Downloading… {progress(d.downloading)}</p>;
+  if (d.error) {
+    // With statistics on disk a failure is a note, not a fault: the app carries on with them.
+    return <p className={d.loaded ? "muted" : "error"}>Update failed: {d.error}</p>;
+  }
+  if (d.checkedAt !== null) return <p className="muted">Up to date, checked {when(d.checkedAt)}.</p>;
+  return null;
+}
+
+/** Unix seconds as the user's own date and time. */
+function when(unix: number): string {
+  return new Date(unix * 1000).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
 function Check(props: { label: string; checked: boolean; onChange: (on: boolean) => void; children?: ReactNode }) {

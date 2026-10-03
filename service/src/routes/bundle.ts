@@ -15,7 +15,12 @@ import type { FastifyPluginAsyncTypebox } from "@fastify/type-provider-typebox";
 import { Type } from "typebox";
 import type { Data } from "../data.ts";
 import type { Store } from "../db/store.ts";
-import { STAGES } from "../domain/augments.ts";
+import {
+  type AugmentCatalogue,
+  type AugmentEntry,
+  type ChampionAugments,
+  STAGES,
+} from "../domain/augments.ts";
 import { SavedRankings, savedRankings } from "./anvils.ts";
 import { AugmentInfo, championInfo, poolAugments } from "./augments.ts";
 import { Archetypes, knownChampion } from "./champions.ts";
@@ -57,6 +62,21 @@ const ChampionBundle = Type.Object({
 
 const ChampionQuery = Type.Object({ champion: Type.Integer() });
 
+/** One ranked pool per rarity and stage, twelve in all, in the order of `RARITIES` then `STAGES`. */
+export function championPools(
+  champion: ChampionAugments,
+  global: Record<number, AugmentEntry>,
+  catalogue: AugmentCatalogue,
+) {
+  return RARITIES.flatMap((rarity) =>
+    STAGES.map((stage) => ({
+      rarity,
+      stage,
+      augments: poolAugments(rarity, stage, champion, global, catalogue),
+    })),
+  );
+}
+
 // -- handler ---------------------------------------------------------------------------------------
 
 export const bundleRoutes: FastifyPluginAsyncTypebox<BundleRouteOptions> = async (
@@ -77,13 +97,7 @@ export const bundleRoutes: FastifyPluginAsyncTypebox<BundleRouteOptions> = async
         data.championBuilds(version.dataPath, query.champion),
       ]);
 
-      const pools = RARITIES.flatMap((rarity) =>
-        STAGES.map((stage) => ({
-          rarity,
-          stage,
-          augments: poolAugments(rarity, stage, champion, global, catalogue),
-        })),
-      );
+      const pools = championPools(champion, global, catalogue);
 
       const rankings = savedRankings(store);
       return {

@@ -1,19 +1,21 @@
 /**
  * The aramkit caching service.
  *
- * Reads its own store first and falls back to aramkit on a miss. Everything under an aramkit
- * `dataPath` is immutable, so the cache never expires; only `versions.json` is polled.
+ * Answers from its own store only. aramkit is crawled ahead of time by `scripts/crawl.ts`, which runs
+ * as a separate Railway cron service and sends what it fetches to `/admin/crawl` (D-090); a data
+ * version is served once all of it is here. CommunityDragon is still fetched on a miss.
  */
 
 import { pino } from "pino";
 import { buildApp } from "./app.ts";
 import { configFromEnv } from "./config.ts";
+import { Crawl } from "./crawl.ts";
 import { Data } from "./data.ts";
+import { Datasets } from "./dataset.ts";
 import { nowUnix, openDatabase } from "./db/database.ts";
 import { Store } from "./db/store.ts";
 import { UpstreamClient } from "./upstream/client.ts";
 import { Documents } from "./upstream/documents.ts";
-import { pollVersions } from "./upstream/versions.ts";
 
 const config = configFromEnv();
 const log = pino({ level: config.logLevel });
@@ -22,7 +24,6 @@ log.info(
   {
     port: config.port,
     database: config.databasePath,
-    aramkit: config.aramkitBase,
     adminSaving: config.adminToken !== null,
     requestsPerSecond: config.requestsPerSecond,
     requestsPerSecondPerIp: config.requestsPerSecondPerIp,
@@ -40,22 +41,16 @@ const client = new UpstreamClient({
   concurrency: config.upstreamConcurrency,
   log,
 });
-const documents = new Documents({
-  store,
-  client,
-  aramkitBase: config.aramkitBase,
-  cdragonBase: config.cdragonBase,
-});
+const documents = new Documents({ store, client, cdragonBase: config.cdragonBase });
 const data = new Data({ store, documents, log });
-const app = await buildApp({ config, store, data, log, startedAt: nowUnix() });
+const datasets = new Datasets({ store, data, log });
+const crawl = new Crawl({ store, data, log, onComplete: () => datasets.warm() });
+const app = await buildApp({ config, store, data, crawl, datasets, log, startedAt: nowUnix() });
 
-const poller = pollVersions({
-  client,
-  store,
-  aramkitBase: config.aramkitBase,
-  everyMs: config.versionsPollMs,
-  log,
-});
+// Built before the first app asks, so a deploy does not make the first download wait on it.
+if (store.latestVersion() !== null) {
+  datasets.warm();
+}
 
 // Railway sends SIGTERM on redeploy. Closing lets requests in flight finish before the database
 // is closed under them.
@@ -67,7 +62,6 @@ for (const signal of ["SIGTERM", "SIGINT"] as const) {
     }
     closing = true;
     log.info(`${signal} received, shutting down`);
-    poller.stop();
     app
       .close()
       .then(() => {

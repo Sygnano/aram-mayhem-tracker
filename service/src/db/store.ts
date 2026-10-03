@@ -55,13 +55,29 @@ export interface VersionEntry {
   highMatches: number;
 }
 
-/** The current patch as the store knows it. `null` until the poller has read `versions.json`. */
+/**
+ * The data version the service answers with: the newest one whose crawl has finished. `null` until a
+ * crawl first completes.
+ */
 export interface LatestVersion {
   version: string;
   dataPath: string;
   dataDate: string;
   allMatches: number;
   firstSeenAt: number;
+}
+
+/** The version the crawler works on, and whether it has finished. */
+export interface CrawlTarget {
+  version: string;
+  dataPath: string;
+  dataDate: string;
+  /** Unix seconds when the last document arrived; `null` while the crawl is still going. */
+  crawledAt: number | null;
+}
+
+function docKeyArgs(key: DocKey): [string, string, string, string] {
+  return [key.dataPath, key.source, key.kind, key.key];
 }
 
 export class Store {
@@ -76,16 +92,41 @@ export class Store {
     this.db.prepare("SELECT 1").get();
   }
 
+  /**
+   * The version every data endpoint answers for: the newest one held in full. A newer version that
+   * is still being crawled is not served, so no request ever needs a document that is not here yet.
+   */
   latestVersion(): LatestVersion | null {
     const row = this.db
       .prepare<[], LatestVersion>(
         `SELECT version, data_path AS dataPath, data_date AS dataDate,
                 all_matches AS allMatches, first_seen_at AS firstSeenAt
+           FROM versions WHERE crawled_at IS NOT NULL
+          ORDER BY build_time_ms DESC LIMIT 1`,
+      )
+      .get();
+    return row ?? null;
+  }
+
+  /** What `versions.json` last called the latest: the version the crawler works on. */
+  crawlTarget(): CrawlTarget | null {
+    const row = this.db
+      .prepare<[], CrawlTarget>(
+        `SELECT version, data_path AS dataPath, data_date AS dataDate, crawled_at AS crawledAt
            FROM versions WHERE is_latest = 1
           ORDER BY build_time_ms DESC LIMIT 1`,
       )
       .get();
     return row ?? null;
+  }
+
+  /** Marks `dataPath` as held in full, which makes it servable. Returns false if it was already. */
+  markCrawled(dataPath: string): boolean {
+    return (
+      this.db
+        .prepare("UPDATE versions SET crawled_at = ? WHERE data_path = ? AND crawled_at IS NULL")
+        .run(nowUnix(), dataPath).changes > 0
+    );
   }
 
   /**
@@ -123,6 +164,41 @@ export class Store {
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(key.dataPath, key.source, key.kind, key.key, gzipSync(body), etag, nowUnix());
+  }
+
+  /** True if `key` is held, or recorded as absent upstream. Either way the crawl has it covered. */
+  hasDocOrAbsent(key: DocKey): boolean {
+    const row = this.db
+      .prepare<[string, string, string, string, string, string, string, string], { n: number }>(
+        `SELECT (SELECT COUNT(*) FROM upstream_docs
+                  WHERE data_path = ? AND source = ? AND kind = ? AND key = ?)
+              + (SELECT COUNT(*) FROM absent_docs
+                  WHERE data_path = ? AND source = ? AND kind = ? AND key = ?) AS n`,
+      )
+      .get(...docKeyArgs(key), ...docKeyArgs(key));
+    return (row?.n ?? 0) > 0;
+  }
+
+  /** True if upstream answered 404 for `key`. */
+  isAbsent(key: DocKey): boolean {
+    return (
+      this.db
+        .prepare<[string, string, string, string], { n: number }>(
+          `SELECT COUNT(*) AS n FROM absent_docs
+            WHERE data_path = ? AND source = ? AND kind = ? AND key = ?`,
+        )
+        .get(...docKeyArgs(key))?.n === 1
+    );
+  }
+
+  /** Records that upstream has no such document. Immutable paths stay that way. */
+  putAbsent(key: DocKey): void {
+    this.db
+      .prepare(
+        `INSERT OR REPLACE INTO absent_docs (data_path, source, kind, key, checked_at)
+         VALUES (?, ?, ?, ?, ?)`,
+      )
+      .run(...docKeyArgs(key), nowUnix());
   }
 
   // -- derived payloads -------------------------------------------------------------------------
@@ -251,6 +327,9 @@ export class Store {
         .prepare(
           `DELETE FROM fetch_failures WHERE data_path <> '' AND data_path NOT IN (${placeholders})`,
         )
+        .run(...keep);
+      this.db
+        .prepare(`DELETE FROM absent_docs WHERE data_path NOT IN (${placeholders})`)
         .run(...keep);
       this.db.prepare(`DELETE FROM versions WHERE data_path NOT IN (${placeholders})`).run(...keep);
       return docs;

@@ -9,7 +9,10 @@ publish.workspace = true
 
 [dependencies]
 serde.workspace = true
-serde_json.workspace = true
+# `raw_value`: the dataset is split into one file per champion without decoding each champion.
+serde_json = { workspace = true, features = ["raw_value"] }
+# The dataset arrives gzipped and is unpacked here, so its download can report progress.
+flate2 = "1"
 thiserror.workspace = true
 # `gzip`: the service compresses its answers, and the champion bundle is mostly repeated field names.
 reqwest = { workspace = true, features = ["gzip"] }

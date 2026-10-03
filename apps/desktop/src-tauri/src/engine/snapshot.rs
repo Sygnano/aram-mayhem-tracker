@@ -25,6 +25,8 @@ pub struct AppSnapshot {
     pub stats: StatsView,
     pub vision: VisionView,
     pub static_data: StaticDataView,
+    /// The downloaded statistics every champion's numbers come from.
+    pub dataset: DatasetView,
     /// The stat anvil offer on screen, ranked for the champion.
     pub anvil: AnvilView,
     pub diagnostics: DiagnosticsView,
@@ -383,6 +385,25 @@ pub struct StatsView {
     pub error: Option<String>,
     /// An offer is on screen but the champion could not be identified, so no lookup is possible.
     pub champion_unknown: bool,
+}
+
+/// The downloaded statistics (D-090): what is on disk, and the download if one is running.
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DatasetView {
+    /// A dataset is on disk and in use. Nothing is shown until there is one.
+    pub loaded: bool,
+    pub patch: Option<String>,
+    pub data_date: Option<String>,
+    pub champions: usize,
+    /// When the dataset in use was downloaded, Unix seconds.
+    pub downloaded_at: Option<u64>,
+    /// When the service last confirmed it or sent a newer one, Unix seconds; `None` since start.
+    pub checked_at: Option<u64>,
+    /// `[received, total]` bytes while a download runs; `total` is `None` when unknown.
+    pub downloading: Option<(u64, Option<u64>)>,
+    /// Why the last update failed. With a dataset loaded, the app carries on with it.
+    pub error: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]

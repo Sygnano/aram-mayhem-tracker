@@ -1,135 +1,8 @@
 /** Every data endpoint, end to end, over a fake aramkit and CommunityDragon. */
 
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { fakeUpstream, insertVersion, silentLog, testService } from "../test/helpers.ts";
-import { refreshVersions } from "../upstream/versions.ts";
-
-const DATA = "/data/16.19-test/stats/all";
-const CDRAGON = "/16.19/plugins/rcp-be-lol-game-data/global/default/v1";
-const fixture = (name: string) =>
-  readFileSync(new URL(`../../fixtures/anvils/${name}`, import.meta.url), "utf8");
-
-const row = (id: number, winRate: number, sampleCount: number, extra = {}) => ({
-  id,
-  rank: 1,
-  tier: "S",
-  sampleCount,
-  pickRate: 0.1,
-  winRate,
-  augmentWinRate: 0.52,
-  availableStages: [1, 2, 3, 4],
-  ...extra,
-});
-
-const champion = (id: number, winRate: number, damage: [number, number, number], extra = {}) => ({
-  champion: {
-    id,
-    tier: "S",
-    rank: 1,
-    stats: {
-      sampleCount: 3_138_960,
-      winRate,
-      pickRate: 0.1,
-      physicalDamageToChampions: damage[0],
-      magicDamageToChampions: damage[1],
-      trueDamageToChampions: damage[2],
-    },
-  },
-  ...extra,
-});
-
-/** A small but real-shaped patch: three ranked champions, one of them missing upstream. */
-async function service({ adminToken = null as string | null, withVersion = true } = {}) {
-  const upstream = await fakeUpstream({
-    [`${DATA}/champion-rankings.json`]: {
-      json: {
-        rows: [
-          { id: 103, rank: 2, tier: "", sampleCount: 9, winRate: 0.51, pickRate: 0.02 },
-          { id: 157, rank: 1, tier: "S", sampleCount: 9, winRate: 0.5773, pickRate: 0.1 },
-          { id: 432, rank: 3, tier: "D", sampleCount: 9, winRate: 0.402, pickRate: 0.01 },
-        ],
-      },
-    },
-    [`${DATA}/augment-rankings.json`]: {
-      json: { all: [row(1134, 0.5996, 2_762_899), row(1058, 0.55, 2_000_000)], stages: {} },
-    },
-    [`${DATA}/champion-details/157.json`]: {
-      json: champion(157, 0.5773, [35112, 5079, 2097], {
-        augments: {
-          all: [row(1058, 0.6661, 320_503), row(2031, 0.61, 5_000)],
-          stages: { "1": [row(1058, 0.9, 60)] },
-        },
-        builds: {
-          filtered: {
-            archetypes: [
-              {
-                key: "crit",
-                rank: 1,
-                profiles: [{ rank: 1, itemSet: [{ id: 3031 }], routes: [] }],
-              },
-            ],
-          },
-        },
-      }),
-    },
-    [`${DATA}/champion-details/103.json`]: { json: champion(103, 0.51, [0, 10_000, 0]) },
-    [`${CDRAGON}/cherry-augments.json`]: {
-      json: [
-        {
-          id: 1058,
-          augmentNameId: "MysticPunch",
-          nameTRA: "Mystic Punch",
-          rarity: "kGold",
-          augmentSmallIconPath: "/lol-game-data/assets/x/mp.png",
-        },
-        {
-          id: 1134,
-          augmentNameId: "DrawYourSword",
-          nameTRA: "Draw Your Sword",
-          rarity: "kGold",
-          augmentSmallIconPath: "",
-        },
-        {
-          id: 2031,
-          augmentNameId: "SilverOne",
-          nameTRA: "Silver One",
-          rarity: "kSilver",
-          augmentSmallIconPath: "",
-        },
-        {
-          id: 9001,
-          augmentNameId: "NewThing",
-          nameTRA: "New Thing",
-          rarity: "kGold",
-          augmentSmallIconPath: "",
-        },
-      ],
-    },
-    [`${CDRAGON}/augment-lists.json`]: {
-      json: [
-        {
-          modeName: "KIWI",
-          augmentList: ["A/MysticPunch", "A/DrawYourSword", "A/NewThing", "A/SilverOne"],
-        },
-      ],
-    },
-    "/16.19/game/data/maps/shipping/map12/map12.bin.json": {
-      text: fixture("map12.anvils.16.19.json"),
-    },
-    "/16.19/game/en_us/data/menu/en_us/lol.stringtable.json": {
-      text: fixture("stringtable.en_us.16.19.json"),
-    },
-    "/16.19/game/fr_fr/data/menu/en_us/lol.stringtable.json": {
-      text: fixture("stringtable.fr_fr.16.19.json"),
-    },
-  });
-  const svc = await testService({ upstreamBase: upstream.base, adminToken });
-  if (withVersion) {
-    insertVersion(svc.db);
-  }
-  return { ...svc, upstream };
-}
+import { crawlFrom } from "../test/helpers.ts";
+import { DATA, service, VERSIONS } from "../test/patch.ts";
 
 describe("/v1/pool", () => {
   it("ranks one rarity's pool, champion data first, unseen augments last", async () => {
@@ -477,29 +350,59 @@ describe("/admin", () => {
   });
 });
 
-describe("versions.json", () => {
-  it("sets the patch every endpoint answers for", async () => {
-    const { app, upstream, store, client } = await service({ withVersion: false });
-    upstream.answers["/data/versions.json"] = {
-      json: {
-        latest: "16.19",
-        versions: [
-          { version: "16.19", dataPath: "data/16.19-test", dataDate: "2026-09-27", allMatches: 7 },
-          { version: "16.18", dataPath: "data/16.18-old" },
-        ],
-      },
-    };
-    const latest = await refreshVersions({
-      client,
-      store,
-      aramkitBase: upstream.base,
-      log: silentLog,
-    });
-    expect(latest).toBe("16.19");
+describe("versions.json and the crawl", () => {
+  it("serves a version only once every document is in, champions upstream lacks included", async () => {
+    const { app, crawl, upstream } = await service({ withVersion: false });
+    expect((await app.inject("/v1/patch")).statusCode).toBe(503);
+
+    let status = await crawl.versions(Buffer.from(JSON.stringify(VERSIONS)));
+    expect(status).toMatchObject({ dataPath: "data/16.19-test", complete: false, expected: null });
+    // The two rankings first; the champions are only known once the rankings are in.
+    expect(status.missing.map((m) => m.path)).toEqual([
+      "data/16.19-test/stats/all/augment-rankings.json",
+      "data/16.19-test/stats/all/champion-rankings.json",
+    ]);
+
+    status = await crawlFrom(crawl, upstream.base);
+    expect(status).toMatchObject({ complete: true, done: 5, expected: 5, missing: [] });
     expect((await app.inject("/v1/patch")).json()).toMatchObject({
       patch: "16.19",
       dataPath: "data/16.19-test",
-      allMatches: 7,
+      allMatches: 4242,
     });
+    // 432 is ranked but has no details upstream: recorded once, answered as upstream did.
+    expect(upstream.hits(`${DATA}/champion-details/432.json`)).toBe(1);
+    expect((await app.inject("/v1/champion?champion=432")).statusCode).toBe(404);
+    expect(upstream.hits(`${DATA}/champion-details/432.json`), "never fetched on a request").toBe(
+      1,
+    );
+  });
+
+  it("refuses a document for another version, of an unknown kind, or that is not what it claims", async () => {
+    const { crawl } = await service();
+    const doc = Buffer.from(JSON.stringify({ champion: { id: 157 } }));
+    await expect(crawl.ingest("data/16.18-old", "champion-details", "157", doc)).rejects.toThrow(
+      /not the version being crawled/,
+    );
+    await expect(crawl.ingest("data/16.19-test", "secrets", "", doc)).rejects.toThrow(
+      /unknown document kind/,
+    );
+    await expect(crawl.ingest("data/16.19-test", "champion-details", "103", doc)).rejects.toThrow(
+      /is about champion 157/,
+    );
+    await expect(
+      crawl.ingest("data/16.19-test", "champion-details", "157", Buffer.from("[1]")),
+    ).rejects.toThrow(/not a JSON object/);
+    await expect(
+      crawl.ingest("data/16.19-test", "champion-rankings", "", Buffer.from('{"rows":[]}')),
+    ).rejects.toThrow(/lists no champion/);
+  });
+
+  it("cannot complete a version whose rankings upstream does not have", async () => {
+    const { crawl, upstream } = await service({ withVersion: false });
+    delete upstream.answers[`${DATA}/augment-rankings.json`];
+    const status = await crawlFrom(crawl, upstream.base);
+    expect(status.complete).toBe(false);
+    expect(status.blocked).toMatch(/no augment-rankings for data\/16.19-test/);
   });
 });

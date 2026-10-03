@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { configFromEnv } from "./config.ts";
+import { configFromEnv, crawlerConfigFromEnv } from "./config.ts";
 
 describe("configuration", () => {
   it("starts with usable defaults when nothing is set", () => {
@@ -9,7 +9,6 @@ describe("configuration", () => {
       databasePath: "/data/cache.db",
       aramkitBase: "https://data.aramkit.com",
       cdragonBase: "https://raw.communitydragon.org",
-      versionsPollMs: 6 * 60 * 60 * 1000,
       upstreamConcurrency: 4,
       adminToken: null,
       requestsPerSecondPerIp: 1,
@@ -46,6 +45,26 @@ describe("configuration", () => {
     expect(() => configFromEnv({ PORT: "eighty" })).toThrow(/PORT="eighty" is not a valid value/);
     expect(() => configFromEnv({ PORT: "70000" })).toThrow(/PORT/);
     expect(() => configFromEnv({ UPSTREAM_CONCURRENCY: "-1" })).toThrow(/UPSTREAM_CONCURRENCY/);
-    expect(() => configFromEnv({ VERSIONS_POLL_SECS: "1.5" })).toThrow(/VERSIONS_POLL_SECS/);
+    expect(() => configFromEnv({ REQUESTS_PER_SECOND: "1.5" })).toThrow(/REQUESTS_PER_SECOND/);
+  });
+
+  it("gives the crawler a slow pace, and refuses to start it without a service or a token", () => {
+    const env = {
+      SERVICE_URL: "http://aramkit-cache.railway.internal:8080/",
+      ADMIN_TOKEN: "s3cret",
+    };
+    expect(crawlerConfigFromEnv(env)).toMatchObject({
+      serviceUrl: "http://aramkit-cache.railway.internal:8080",
+      adminToken: "s3cret",
+      aramkitBase: "https://data.aramkit.com",
+      intervalMs: 5_000,
+      maxFailures: 5,
+    });
+    expect(crawlerConfigFromEnv({ ...env, CRAWL_INTERVAL_SECS: "10" }).intervalMs).toBe(10_000);
+    expect(() => crawlerConfigFromEnv({ ADMIN_TOKEN: "s3cret" })).toThrow(/SERVICE_URL/);
+    expect(() => crawlerConfigFromEnv({ SERVICE_URL: "http://x" })).toThrow(/ADMIN_TOKEN/);
+    expect(() => crawlerConfigFromEnv({ ...env, CRAWL_INTERVAL_SECS: "1.5" })).toThrow(
+      /CRAWL_INTERVAL_SECS/,
+    );
   });
 });

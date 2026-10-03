@@ -102,17 +102,19 @@ Everything it reads comes from your own machine or from public sources:
   titles with a bundled text recognition model. Nothing is captured outside a Mayhem game.
 - **[CommunityDragon](https://www.communitydragon.org)** for augment names and the Mayhem augment pool
   in your client's language.
-- **Our statistics service**, which caches aramkit's data per patch and serves only what the app
-  needs.
+- **Our statistics service**, which collects aramkit's data and serves it shaped for the app. The
+  app downloads every champion's statistics at once when it starts (about 13 MB), keeps them next to
+  its settings (about 115 MB), and looks for newer ones every 24 hours or when you click *Update now*.
+  Nothing is shown until they are downloaded, and nothing about a champion is fetched during a game.
 
 The app never injects anything into the game or the client, never reads their memory, and does not
 use the Riot Games web API. It shows no enemy cooldowns or timers.
 
-**What leaves your machine**: requests to CommunityDragon for the game data, and to our service with
-champion ids (yours, and the enemy team's once a game starts) and your client's language. No account
-name, summoner id or other personal data is sent. Your IP address is visible to the service, as to
-any website, and is used only to rate-limit requests. If the service cannot be reached, the app uses
-the last answers it stored.
+**What leaves your machine**: requests to CommunityDragon for the game data, and to our service for
+the statistics download, the enemy team's champion ids once a game starts, and your client's
+language. No account name, summoner id or other personal data is sent. Your IP address is visible to
+the service, as to any website, and is used only to rate-limit requests. If the service cannot be
+reached, the app carries on with the statistics already on disk.
 
 ## Troubleshooting
 
@@ -143,7 +145,7 @@ cargo test --workspace          # all Rust tests (run `pnpm --filter desktop bui
 | `crates/mayhem-vision` | Screen reading: card detection, text recognition, name matching |
 | `crates/league-api` | The Live Client Data and LCU clients |
 | `crates/static-data` | CommunityDragon data, cached per patch |
-| `crates/aramkit-client` | The client for our statistics service, with an offline copy |
+| `crates/aramkit-client` | The client for our statistics service, and the downloaded statistics on disk |
 | `service` | The statistics service (TypeScript, deployed on Railway). See [service/README.md](service/README.md) |
 
 ### Releasing

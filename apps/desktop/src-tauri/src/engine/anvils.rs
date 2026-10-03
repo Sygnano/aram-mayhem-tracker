@@ -5,10 +5,9 @@
 //!
 //! - **The catalogue** is fixed for a patch and a language, so it is fetched once for the game's
 //!   locale and kept. It is what builds the shard matcher.
-//! - **The rankings** are edited by hand between games. They arrive with the champion bundle
-//!   (`super::champion`), reduced to the champion's group, every time the locked champion
-//!   changes: before any anvil can appear, and soon enough that an edit saved during one champ
-//!   select is live by the next.
+//! - **The rankings** are edited by hand in the service's `/admin` editor. They come whole with the
+//!   downloaded dataset (`super::dataset`, D-090), so an edit reaches the app at its next update:
+//!   within 24 hours, or at once with *Update now*.
 //! - **The enemy team's damage split** can only be asked for in game, because an ARAM champ select
 //!   never shows the other team. It is fetched once, when the Live Client first lists them, and it
 //!   breaks a tie between Armor and Magic Resist.
@@ -35,7 +34,7 @@ pub struct AnvilData {
     pub patch: String,
     pub catalogue: Arc<Vec<ShardInfo>>,
     pub matcher: Option<Arc<ShardMatcher>>,
-    /// Written by the champion prefetch, which fetches them.
+    /// Written by the dataset (`dataset.rs`), which holds them whole.
     pub rankings: Option<AnvilRankings>,
     pub freshness: Option<Freshness>,
     /// Why the catalogue is missing or old. Kept apart from the rankings' error: they are fetched

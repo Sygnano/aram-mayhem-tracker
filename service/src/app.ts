@@ -11,7 +11,9 @@ import Fastify, {
   type FastifyPluginAsync,
 } from "fastify";
 import type { Config } from "./config.ts";
+import type { Crawl } from "./crawl.ts";
 import type { Data } from "./data.ts";
+import type { Datasets } from "./dataset.ts";
 import type { Store } from "./db/store.ts";
 import { TooManyRequestsError, toErrorResponse } from "./errors.ts";
 import { KeyedRateLimiter, RateLimiter, trustRailwayProxy } from "./rate-limit.ts";
@@ -19,6 +21,8 @@ import { adminRoute, anvilRoutes } from "./routes/anvils.ts";
 import { augmentRoutes } from "./routes/augments.ts";
 import { bundleRoutes } from "./routes/bundle.ts";
 import { championRoutes } from "./routes/champions.ts";
+import { crawlRoutes } from "./routes/crawl.ts";
+import { datasetRoutes } from "./routes/dataset.ts";
 import { healthRoute, patchRoute } from "./routes/status.ts";
 
 export interface AppDeps {
@@ -28,6 +32,8 @@ export interface AppDeps {
   >;
   store: Store;
   data: Data;
+  crawl: Crawl;
+  datasets: Datasets;
   log: FastifyBaseLogger;
   /** When this process started, in Unix seconds. */
   startedAt: number;
@@ -37,6 +43,8 @@ export async function buildApp({
   config,
   store,
   data,
+  crawl,
+  datasets,
   log,
   startedAt,
 }: AppDeps): Promise<FastifyInstance> {
@@ -73,6 +81,8 @@ export async function buildApp({
 
   await app.register(healthRoute, { store, startedAt });
   await app.register(adminRoute);
+  // The crawler sends a document every five seconds or so, with the admin token: no limit to apply.
+  await app.register(crawlRoutes, { crawl, adminToken: config.adminToken });
 
   // Everything below is limited per client address (`REQUESTS_PER_SECOND_PER_IP`, `BURST_PER_IP`),
   // under one ceiling for the whole service (`REQUESTS_PER_SECOND`). The hook belongs to this
@@ -90,6 +100,7 @@ export async function buildApp({
     await limited.register(augmentRoutes, { store, data });
     await limited.register(championRoutes, { store, data });
     await limited.register(bundleRoutes, { store, data });
+    await limited.register(datasetRoutes, { datasets });
     await limited.register(anvilRoutes, { store, data, adminToken: config.adminToken });
   };
   await app.register(limitedRoutes);

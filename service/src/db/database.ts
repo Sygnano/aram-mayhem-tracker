@@ -21,6 +21,7 @@ export const MIGRATIONS: readonly string[] = [
   "0001_init.sql",
   "0002_anvil_rankings.sql",
   "0003_anvil_rankings_history.sql",
+  "0004_crawl.sql",
 ].map((file) => readFileSync(new URL(`../../migrations/${file}`, import.meta.url), "utf8"));
 
 export interface OpenOptions {

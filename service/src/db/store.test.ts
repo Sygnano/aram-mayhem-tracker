@@ -40,12 +40,12 @@ describe("the document cache", () => {
 });
 
 describe("versions", () => {
-  const version = (v: string, dataPath: string): VersionEntry => ({
+  const version = (v: string, dataPath: string, buildTimeUnixMs = 1): VersionEntry => ({
     version: v,
     dataPath,
     resourcePath: "",
     dataDate: "2026-09-27",
-    buildTimeUnixMs: 1,
+    buildTimeUnixMs,
     allMatches: 1,
     highMatches: 0,
   });
@@ -53,13 +53,20 @@ describe("versions", () => {
   it("mark the latest and prune what upstream no longer lists", () => {
     const s = store();
     s.recordVersions([version("16.18", "data/old"), version("16.19", "data/new")], "16.19");
+    expect(s.crawlTarget()?.dataPath).toBe("data/new");
+    expect(s.markCrawled("data/new")).toBe(true);
     expect(s.latestVersion()?.dataPath).toBe("data/new");
 
     s.putDoc(aramkitKey("data/old", "champion-details", "157"), Buffer.from("{}"), null);
     s.putDoc(cdragonKey("cherry-augments", "16.18"), Buffer.from("[]"), null);
 
-    s.recordVersions([version("16.19", "data/new"), version("16.20", "data/newer")], "16.20");
+    s.recordVersions([version("16.19", "data/new"), version("16.20", "data/newer", 2)], "16.20");
     expect(s.pruneOldPatches(["data/new", "data/newer"])).toBe(1);
+    expect(s.crawlTarget()).toMatchObject({ version: "16.20", crawledAt: null });
+    // Served until the newer one is crawled in full, and a second mark changes nothing.
+    expect(s.latestVersion()?.version).toBe("16.19");
+    expect(s.markCrawled("data/newer")).toBe(true);
+    expect(s.markCrawled("data/newer")).toBe(false);
     expect(s.latestVersion()?.version).toBe("16.20");
     // CommunityDragon documents are pinned by patch, not by an aramkit build, and are kept.
     expect(s.getDoc(cdragonKey("cherry-augments", "16.18"))).not.toBeNull();

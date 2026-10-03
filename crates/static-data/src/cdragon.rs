@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -41,6 +42,10 @@ impl StaticData {
         self.champion_ids.get(&wanted).copied()
     }
 }
+
+/// What `champion-summary.json` reduces to: [`StaticData::champion_ids`] and
+/// [`StaticData::champion_names`].
+pub type ChampionIndex = (HashMap<String, i64>, HashMap<i64, String>);
 
 pub struct CDragon {
     http: reqwest::Client,
@@ -172,6 +177,16 @@ impl CDragon {
         }
     }
 
+    /// The champion index for `patch`: alias → id, and id → display name. Locale-independent, since
+    /// it is keyed on the alias, not the display name.
+    ///
+    /// Separate from [`CDragon::load`] so that a failure here can be retried alone: the rest of the
+    /// static data is fine without it, and reloading all of it to get this back would be wasteful.
+    pub async fn champions(&self, patch: &str) -> Result<ChampionIndex, StaticDataError> {
+        let champions: Vec<ChampionSummary> = self.file(patch, "default", "champion-summary.json").await?;
+        Ok((crate::champions::index(&champions), crate::champions::names(&champions)))
+    }
+
     /// Loads both Mayhem pools for the current patch, in the game's locale (augment names must be
     /// in the language OCR will read). Falls back to the newest cached patch when offline.
     pub async fn load(&self, game_locale: Option<&str>) -> Result<StaticData, StaticDataError> {
@@ -187,17 +202,16 @@ impl CDragon {
         let (kiwi, mut unmatched) = build_pool(&augments, &lists, "KIWI", &icon_base)?;
         let (kiwi_jade, jade_unmatched) = build_pool(&augments, &lists, "KIWI_JADE", &icon_base)?;
         unmatched.extend(jade_unmatched);
-        // Locale-independent: we key on the alias, not the display name. Best-effort, because this
-        // only enables the statistics lookup — without it the offer is still read and named, so a
-        // missing champion-summary.json must not fail the whole load.
-        let (champion_ids, champion_names) =
-            match self.file::<Vec<ChampionSummary>>(&patch, "default", "champion-summary.json").await {
-                Ok(champions) => (crate::champions::index(&champions), crate::champions::names(&champions)),
-                Err(e) => {
-                    log::warn!("champion ids unavailable, augment statistics will be skipped: {e}");
-                    Default::default()
-                }
-            };
+        // Best-effort, because this only enables the statistics lookup — without it the offer is
+        // still read and named, so a missing champion-summary.json must not fail the whole load. An
+        // empty index is retried on its own with [`CDragon::champions`].
+        let (champion_ids, champion_names) = match self.champions(&patch).await {
+            Ok(champions) => champions,
+            Err(e) => {
+                log::warn!("champion ids unavailable, augment statistics will be skipped until they load: {e}");
+                Default::default()
+            }
+        };
         if !offline {
             self.prune_old_patches(&patch);
         }
@@ -259,6 +273,15 @@ mod tests {
         // champion ids are simply absent.
         assert!(data.champion_ids.is_empty());
         assert_eq!(data.champion_id("Yasuo"), None);
+        // ...and can be had on their own once the file is there, without reloading the rest.
+        std::fs::write(
+            dir.join("16.19").join("default").join("champion-summary.json"),
+            r#"[{"id":157,"name":"Yasuo","alias":"Yasuo"},{"id":-1,"name":"None","alias":"None"}]"#,
+        )
+        .unwrap();
+        let (ids, names) = cd.champions("16.19").await.unwrap();
+        assert_eq!(ids.get("yasuo"), Some(&157));
+        assert_eq!(names.get(&157).map(String::as_str), Some("Yasuo"));
 
         // A locale that is not cached is a fetch, which fails offline.
         assert!(cd.load(Some("de_DE")).await.is_err());

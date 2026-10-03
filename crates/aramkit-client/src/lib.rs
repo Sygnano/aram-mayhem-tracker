@@ -9,9 +9,11 @@
 //! render empty, so when the service is unreachable the last good copy is served and flagged stale.
 
 mod cache;
+pub mod dataset;
 mod types;
 
 pub use cache::Cache;
+pub use dataset::{DatasetFetch, Manifest, StoredDataset};
 pub use types::*;
 
 use std::{path::PathBuf, time::Duration};
@@ -67,25 +69,6 @@ impl AramkitClient {
         Self { http, base: base.into().trim_end_matches('/').to_owned(), cache: Cache::new(cache_dir) }
     }
 
-    /// Everything about one champion in one request: the ranked pool for every rarity at
-    /// every stage, from which the overlay opens the list for the offer on screen and picks the
-    /// offer's own numbers; the build archetypes for the item sets; and the champion's anvil
-    /// ranking group.
-    pub async fn champion(&self, champion_id: i64) -> Result<Fetched<ChampionBundle>, ClientError> {
-        let url = format!("{}/v1/champion?champion={champion_id}", self.base);
-        self.get(&url, &format!("champion-{champion_id}")).await
-    }
-
-    /// Every champion's rank, tier and rates, for the champ-select overlay.
-    ///
-    /// One request per patch: the response is the whole table, so a bench reroll is answered from
-    /// memory rather than over the network. Cached to disk under a fixed key like everything else,
-    /// which means a champ select entered offline still shows numbers.
-    pub async fn champions(&self) -> Result<Fetched<ChampionsResponse>, ClientError> {
-        let url = format!("{}/v1/champions", self.base);
-        self.get(&url, "champions").await
-    }
-
     /// The stat anvil shards, named in `locale` (`en_us`, `fr_fr`, …). Once per patch.
     pub async fn anvils(&self, locale: &str) -> Result<Fetched<AnvilCatalogue>, ClientError> {
         let url = format!("{}/v1/anvils?locale={locale}", self.base);
@@ -105,10 +88,13 @@ impl AramkitClient {
     }
 
     /// Deletes stored copies no request reads any more: per-team damage answers and per-offer
-    /// answers, which earlier builds wrote one file at a time and never removed, and the separate
-    /// pool, build and anvil-ranking answers the champion bundle replaced. Returns how many went.
+    /// answers, which earlier builds wrote one file at a time and never removed; the separate pool,
+    /// build and anvil-ranking answers the champion bundle replaced; and the champion bundles and
+    /// champion table the downloaded dataset replaced (D-090). Returns how many went.
     pub async fn remove_obsolete_copies(&self) -> usize {
-        self.cache.remove_with_prefixes(&["damage-", "offer-", "pool-", "build-", "anvil-rankings"]).await
+        self.cache
+            .remove_with_prefixes(&["damage-", "offer-", "pool-", "build-", "anvil-rankings", "champion-", "champions"])
+            .await
     }
 
     /// Fetches and caches, falling back to the stored copy when the service cannot be reached.
@@ -161,14 +147,19 @@ impl AramkitClient {
         let bytes = resp.bytes().await.map_err(|e| ClientError::Http { url: url.into(), message: e.to_string() })?;
 
         if !status.is_success() {
-            // The service reports errors as JSON, so surface its message rather than a bare code.
-            let message = serde_json::from_slice::<ServiceError>(&bytes)
-                .map(|e| e.error)
-                .unwrap_or_else(|_| String::from_utf8_lossy(&bytes).chars().take(200).collect());
-            return Err(ClientError::Status { status: status.as_u16(), url: url.into(), message });
+            return Err(status_error(status.as_u16(), url, &bytes));
         }
         Ok(bytes.to_vec())
     }
+}
+
+/// An unsuccessful answer. The service reports errors as JSON, so its message is surfaced rather
+/// than a bare code.
+fn status_error(status: u16, url: &str, body: &[u8]) -> ClientError {
+    let message = serde_json::from_slice::<ServiceError>(body)
+        .map(|e| e.error)
+        .unwrap_or_else(|_| String::from_utf8_lossy(body).chars().take(200).collect());
+    ClientError::Status { status, url: url.into(), message }
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -207,18 +198,18 @@ mod tests {
         dir
     }
 
-    const TABLE: &str = r#"{"patch":"16.19","poolSize":2,"champions":[{"id":157,"rank":1}]}"#;
-    const OLDER: &str = r#"{"patch":"16.18","poolSize":1,"champions":[]}"#;
+    const SHARDS: &str = r#"{"patch":"16.19","locale":"en_us","shards":[{"id":"ARAM_StatAnvil_AR"}]}"#;
+    const OLDER: &str = r#"{"patch":"16.18","locale":"en_us","shards":[]}"#;
 
     #[tokio::test]
     async fn a_live_answer_is_served_and_kept() {
         let dir = cache_dir("live");
-        let client = AramkitClient::new(serve(200, TABLE).await, &dir);
+        let client = AramkitClient::new(serve(200, SHARDS).await, &dir);
 
-        let fetched = client.champions().await.unwrap();
+        let fetched = client.anvils("en_us").await.unwrap();
         assert_eq!(fetched.freshness, Freshness::Live);
         assert_eq!(fetched.value.patch, "16.19");
-        assert_eq!(client.cache.get("champions").await.unwrap().unwrap(), TABLE.as_bytes());
+        assert_eq!(client.cache.get("anvils-en_us").await.unwrap().unwrap(), SHARDS.as_bytes());
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -236,10 +227,10 @@ mod tests {
             let dir = cache_dir(&format!("outage-{name}"));
             let client = AramkitClient::new(base, &dir);
 
-            assert!(client.champions().await.is_err(), "{name}: nothing stored, so nothing to serve");
+            assert!(client.anvils("en_us").await.is_err(), "{name}: nothing stored, so nothing to serve");
 
-            client.cache.put("champions", OLDER.as_bytes()).await.unwrap();
-            let fetched = client.champions().await.unwrap_or_else(|e| panic!("{name}: {e}"));
+            client.cache.put("anvils-en_us", OLDER.as_bytes()).await.unwrap();
+            let fetched = client.anvils("en_us").await.unwrap_or_else(|e| panic!("{name}: {e}"));
             assert_eq!(fetched.freshness, Freshness::Stale, "{name}");
             assert_eq!(fetched.value.patch, "16.18", "{name}");
             let _ = std::fs::remove_dir_all(&dir);
@@ -249,12 +240,12 @@ mod tests {
     #[tokio::test]
     async fn a_refusal_is_an_answer_and_hides_nothing_behind_a_stored_copy() {
         let dir = cache_dir("refusal");
-        let client = AramkitClient::new(serve(404, r#"{"error":"not found: no champion"}"#).await, &dir);
-        client.cache.put("champion-999999", br#"{"patch":"16.18"}"#).await.unwrap();
+        let client = AramkitClient::new(serve(400, r#"{"error":"bad request: unknown locale"}"#).await, &dir);
+        client.cache.put("anvils-xx_xx", OLDER.as_bytes()).await.unwrap();
 
-        match client.champion(999_999).await {
-            Err(ClientError::Status { status: 404, message, .. }) => {
-                assert_eq!(message, "not found: no champion", "the service's own words are passed on")
+        match client.anvils("xx_xx").await {
+            Err(ClientError::Status { status: 400, message, .. }) => {
+                assert_eq!(message, "bad request: unknown locale", "the service's own words are passed on")
             }
             other => panic!("expected the 404, got {other:?}"),
         }
@@ -266,8 +257,8 @@ mod tests {
         let dir = cache_dir("garbled");
         let client = AramkitClient::new(serve(200, "<html>gateway</html>").await, &dir);
 
-        assert!(matches!(client.champions().await, Err(ClientError::Decode { .. })));
-        assert!(client.cache.get("champions").await.unwrap().is_none());
+        assert!(matches!(client.anvils("en_us").await, Err(ClientError::Decode { .. })));
+        assert!(client.cache.get("anvils-en_us").await.unwrap().is_none());
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -284,15 +275,17 @@ mod tests {
             "build-157",
             "anvil-rankings",
             "champion-157",
+            "champions",
+            "anvils-en_us",
         ] {
             client.cache.put(key, b"{}").await.unwrap();
         }
-        assert_eq!(client.remove_obsolete_copies().await, 5);
-        assert!(client.cache.get("champion-157").await.unwrap().is_some());
+        assert_eq!(client.remove_obsolete_copies().await, 7);
+        assert!(client.cache.get("anvils-en_us").await.unwrap().is_some());
 
         assert_eq!(client.damage(&[1, 2, 3, 4, 5]).await.unwrap().missing, [7]);
         let stored: Vec<_> = std::fs::read_dir(&dir).unwrap().filter_map(|e| e.ok()).map(|e| e.file_name()).collect();
-        assert_eq!(stored.len(), 1, "only the champion bundle is left: {stored:?}");
+        assert_eq!(stored.len(), 1, "only the shard catalogue is left: {stored:?}");
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

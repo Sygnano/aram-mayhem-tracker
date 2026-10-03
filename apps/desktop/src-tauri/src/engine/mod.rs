@@ -21,6 +21,7 @@ pub mod anvils;
 pub mod champion;
 pub mod champselect;
 pub mod client;
+pub mod dataset;
 pub mod game;
 pub mod itemsets;
 pub mod rankings;
@@ -139,14 +140,16 @@ pub struct EngineState {
     pub stats: stats::StatsState,
     /// Item sets written to the League client.
     pub item_sets: itemsets::ItemSetState,
-    /// Everything about the locked champion, fetched during champ select so nothing in game waits
-    /// on the network.
+    /// Everything about the locked champion, read from the dataset at lock-in so nothing in game
+    /// waits on the network.
     pub champion: champion::ChampionData,
-    /// Every champion's rank, tier and rates — one table, fetched once per patch, that champ
-    /// select reads for every block on the screen.
+    /// Every champion's rank, tier and rates — one table, from the dataset, that champ select reads
+    /// for every block on the screen.
     pub rankings: rankings::Rankings,
     /// Stat anvil shards and the hand-authored rankings.
     pub anvils: anvils::AnvilData,
+    /// Every champion's statistics, downloaded at once and kept on disk.
+    pub dataset: dataset::DatasetState,
     /// Where the champion icons are on the champ-select screen, so the overlay can label them.
     pub champ_select: champselect::ChampSelectState,
     pub events: VecDeque<String>,
@@ -406,6 +409,19 @@ impl EngineState {
             None => StaticDataView { error: self.static_error.clone(), ..Default::default() },
         };
 
+        let unix = |t: std::time::SystemTime| t.duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs());
+        let manifest = self.dataset.manifest();
+        let dataset = DatasetView {
+            loaded: manifest.is_some(),
+            patch: manifest.map(|m| m.patch.clone()),
+            data_date: manifest.map(|m| m.data_date.clone()),
+            champions: manifest.map_or(0, |m| m.champions),
+            downloaded_at: manifest.map(|m| m.downloaded_at),
+            checked_at: self.dataset.checked_at.map(unix),
+            downloading: self.dataset.downloading,
+            error: self.dataset.error.clone(),
+        };
+
         let anvil = self.anvil_view();
         let mut vision = self.vision.clone();
         vision.recent_events = self.events.iter().rev().take(15).cloned().collect();
@@ -424,6 +440,7 @@ impl EngineState {
             stats,
             vision,
             static_data,
+            dataset,
             anvil,
             diagnostics: DiagnosticsView {
                 faults: self.faults.clone(),

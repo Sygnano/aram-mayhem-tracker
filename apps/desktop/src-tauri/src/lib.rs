@@ -59,6 +59,7 @@ pub fn run() {
             commands::get_snapshot,
             commands::get_config,
             commands::save_settings,
+            commands::update_statistics,
             commands::swap_to_champion,
             commands::get_chat_status,
             commands::set_chat_status,
@@ -95,8 +96,8 @@ pub fn run() {
             engine::spawn_task(&engine, "the game data retry", engine::client::static_retry_loop(engine.clone()));
             engine::spawn_task(&engine, "the live game reader", engine::game::run(engine.clone()));
             engine::vision::spawn(engine.clone());
+            engine::dataset::spawn(engine.clone());
             engine::champion::spawn(engine.clone());
-            engine::rankings::spawn(engine.clone());
             engine::anvils::spawn(engine.clone());
             engine::champselect::spawn(engine.clone());
             engine::stats::spawn(engine.clone());

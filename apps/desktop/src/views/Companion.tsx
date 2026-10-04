@@ -68,42 +68,6 @@ function Home({ s, onSettings }: { s: Snapshot; onSettings: () => void }) {
       {cfg && (
         <>
           <section>
-            <h2>Statistics</h2>
-            <dl>
-              <dt>Data</dt>
-              <dd>
-                {s.dataset.loaded
-                  ? `${s.dataset.patch} · ${s.dataset.dataDate} · ${s.dataset.champions} champions`
-                  : "Not downloaded yet"}
-              </dd>
-              {s.dataset.downloadedAt !== null && (
-                <>
-                  <dt>Downloaded</dt>
-                  <dd>{when(s.dataset.downloadedAt)}</dd>
-                </>
-              )}
-            </dl>
-            <div className="checks">
-              <Check
-                label="Update statistics automatically"
-                checked={cfg.autoUpdateStatistics}
-                onChange={(on) => update({ autoUpdateStatistics: on })}
-              >
-                Looks for newer ones every 24 hours. They are always checked when the app starts.
-              </Check>
-              <div className="updates">
-                <button
-                  onClick={() => invoke<void>("update_statistics").catch(console.error)}
-                  disabled={s.dataset.downloading !== null}
-                >
-                  Update now
-                </button>
-                <StatisticsLine s={s} />
-              </div>
-            </div>
-          </section>
-
-          <section>
             <h2>Overlay options</h2>
             <div className="checks">
               <Check label="Enabled" checked={cfg.overlayEnabled} onChange={(on) => update({ overlayEnabled: on })} />
@@ -163,7 +127,14 @@ function Home({ s, onSettings }: { s: Snapshot; onSettings: () => void }) {
                 checked={cfg.checkUpdatesOnStartup}
                 onChange={(on) => update({ checkUpdatesOnStartup: on })}
               />
-              <UpdatePanel portable={portable} />
+              <Check
+                label="Update statistics automatically"
+                checked={cfg.autoUpdateStatistics}
+                onChange={(on) => update({ autoUpdateStatistics: on })}
+              >
+                Looks for newer ones every 24 hours. They are always checked when the app starts.
+              </Check>
+              <UpdatePanel s={s} portable={portable} />
             </div>
           </section>
         </>
@@ -180,7 +151,7 @@ function StatisticsLine({ s }: { s: Snapshot }) {
     // With statistics on disk a failure is a note, not a fault: the app carries on with them.
     return <p className={d.loaded ? "muted" : "error"}>Update failed: {d.error}</p>;
   }
-  if (d.checkedAt !== null) return <p className="muted">Up to date, checked {when(d.checkedAt)}.</p>;
+  if (d.checkedAt !== null) return <p className="muted">Data up to date, checked {when(d.checkedAt)}.</p>;
   return null;
 }
 
@@ -205,11 +176,12 @@ function Check(props: { label: string; checked: boolean; onChange: (on: boolean)
 const UPDATE_BUSY: UpdateStatus["state"][] = ["checking", "downloading", "installing"];
 
 /**
- * "Check for updates", what the check found, and "Download update" when there is something newer.
- * The status lives in the backend, so a check started at launch shows here too. A portable copy
- * cannot run the installer, so it gets the release page instead of the download.
+ * "Update statistics" and "Check for app update" side by side, then where each stands, and
+ * "Download update" when there is a newer app. The app status lives in the backend, so a check
+ * started at launch shows here too. A portable copy cannot run the installer, so it gets the
+ * release page instead of the download.
  */
-function UpdatePanel({ portable }: { portable: boolean }) {
+function UpdatePanel({ s, portable }: { s: Snapshot; portable: boolean }) {
   const [status, setStatus] = useState<UpdateStatus>({ state: "idle" });
   const busy = UPDATE_BUSY.includes(status.state);
 
@@ -245,9 +217,18 @@ function UpdatePanel({ portable }: { portable: boolean }) {
 
   return (
     <div className="updates">
-      <button onClick={check} disabled={busy}>
-        Check for updates
-      </button>
+      <div className="row">
+        <button
+          onClick={() => invoke<void>("update_statistics").catch(console.error)}
+          disabled={s.dataset.downloading !== null}
+        >
+          Update statistics
+        </button>
+        <button onClick={check} disabled={busy}>
+          Check for app update
+        </button>
+      </div>
+      <StatisticsLine s={s} />
       <UpdateLine status={status} />
       {status.state === "available" &&
         (portable ? (

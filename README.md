@@ -153,7 +153,9 @@ cargo test --workspace          # all Rust tests (run `pnpm --filter desktop bui
 Releases are built by GitHub Actions (`.github/workflows/release.yml`) from the version in the code.
 There is no tag to push by hand.
 
-1. Run `pnpm bump <version>` (for example `pnpm bump 1.0.1`), then commit and push to `main`. It sets
+1. Run `pnpm bump major`, `pnpm bump minor` or `pnpm bump patch` (`fix` also works) to step the
+   current version, or `pnpm bump <version>` (for example `pnpm bump 1.0.1`) to set one, then commit
+   and push to `main`. It sets
    the version in `apps/desktop/src-tauri/tauri.conf.json`, `apps/desktop/package.json`,
    `apps/desktop/src-tauri/Cargo.toml` and `Cargo.lock`. The workflow fails if the first three differ,
    and CI fails on a `Cargo.lock` left behind, since it builds with `--locked`.

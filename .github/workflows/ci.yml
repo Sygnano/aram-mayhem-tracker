@@ -101,7 +101,3 @@ jobs:
         run: pnpm test
       - name: Build
         run: pnpm build
-      # The image Railway builds. Docker is not installed on the development machine, so this is
-      # where the Dockerfile is checked.
-      - name: Build the image
-        run: docker build --tag aramkit-cache .

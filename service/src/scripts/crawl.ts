@@ -1,6 +1,6 @@
 /**
  * Entry point of the crawler (D-090), which Railway runs on a cron as its own service from this same
- * image: start command `node dist/scripts/crawl.js`, with `SERVICE_URL` and `ADMIN_TOKEN` set.
+ * image: start command `pnpm crawl`, with `SERVICE_URL` and `ADMIN_TOKEN` set.
  * Locally, `node src/scripts/crawl.ts` with the same variables.
  *
  * Exits 0 when the current data version is complete, 1 when it could not get there. Railway skips a

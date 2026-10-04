@@ -12,6 +12,7 @@
   "scripts": {
     "dev": "node --watch src/server.ts",
     "start": "node dist/server.js",
+    "crawl": "node dist/scripts/crawl.js",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",

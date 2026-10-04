@@ -100,7 +100,7 @@ function checkWritable(dir: string): void {
     throw new Error(
       `the database directory ${dir} is not writable by uid ${process.getuid?.() ?? "n/a"}: ` +
         `${String(error)}. On Railway this usually means the volume is mounted root-owned while the ` +
-        "service runs unprivileged; see service/docker-entrypoint.sh.",
+        "service runs unprivileged; see the volume permission note in service/README.md.",
     );
   }
   rmSync(probe, { force: true });

@@ -102,20 +102,22 @@ proxy range, `100.0.0.0/8`. Anywhere else the socket's own address counts and th
 
 ## Deploy on Railway
 
-1. Create a service from this repository and set its **root directory to `service`**. `railway.json`
-   selects the Dockerfile and points the health check at `/v1/health`.
+1. Create a service from this repository and set its **root directory to `service`**. Railway builds
+   it with Railpack, which reads `package.json`: pnpm from `packageManager`, then `pnpm build`, then
+   `pnpm start`. Everything else is set in the service's dashboard settings, not in a file: the
+   health check path `/v1/health` with a 30-second timeout, and the restart policy On Failure with 10
+   retries.
 2. Add a **volume mounted at `/data`**. Without it the cache is lost on every deploy and everything is
    crawled from aramkit again, which is the load this service exists to avoid.
 3. Set `ADMIN_TOKEN`. The crawler needs it, and so does the `/admin` editor to save.
 4. Generate a public domain and check `https://<domain>/v1/health`.
 5. **The crawler**: create a second service from the same repository and root directory, with no
-   volume and no public domain, and set its config file path to `/service/railway.crawler.json`. That
-   file sets the start command (`node dist/scripts/crawl.js`), an hourly cron schedule, no health
-   check and no restart on failure; a file in the repository overrides the dashboard. Set
-   `SERVICE_URL` and `ADMIN_TOKEN`. Railway runs it on schedule, skips a run while the last one is
-   still going, and the script exits when it is done. A new data version takes about 15 minutes to
-   crawl; until then the previous one is served, and a fresh deploy answers 503 until its first crawl
-   completes.
+   volume and no public domain, and no config file path. In its Deploy settings, set the start
+   command to `pnpm crawl`, the cron schedule to `0 * * * *` (hourly), no health check path and the
+   restart policy to Never. Set `SERVICE_URL` and `ADMIN_TOKEN`. Railway runs it on schedule, skips a
+   run while the last one is still going, and the script exits when it is done. A new data version
+   takes about 15 minutes to crawl; until then the previous one is served, and a fresh deploy answers
+   503 until its first crawl completes.
 
 Deploy the service **before** releasing an app version that depends on a new route: an app that gets
 a 404 for a route has nothing to fall back on.
@@ -137,6 +139,6 @@ Deleting the volume deletes the rankings.
 
 Railway mounts volumes owned by `root` at runtime, over whatever the image prepared. A service running
 as an unprivileged user then cannot create its database, and SQLite only says `unable to open
-database file`. [docker-entrypoint.sh](docker-entrypoint.sh) starts as root, gives the database
-directory to the service account, then drops to it, so the service itself never runs privileged. If a
-recurrence happens, the service's own error names the directory and the user id.
+database file`. The service runs as whatever user Railpack's image starts it as, so if that is not
+root, the write probe at startup fails and names the directory and the user id. Railway's documented
+answer is to set `RAILWAY_RUN_UID=0` on the service.

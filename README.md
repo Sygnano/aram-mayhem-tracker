@@ -59,14 +59,17 @@ folder can be moved or copied whole. If that folder cannot be written (a zip ope
 folder under *Program Files*), the app warns and uses the installed copy's folders instead.
 
 A portable copy needs Microsoft Edge WebView2, which Windows 11 has and which the zip cannot add.
-WebView2 keeps its own browser data under `%LOCALAPPDATA%\dev.syg.aram-mayhem-tracker`. A portable
-copy checks for updates like an installed one, but *Open release page* replaces *Download update*:
+WebView2 keeps its own browser data under `%LOCALAPPDATA%\fr.sygnano.aram-mayhem-tracker`. A
+portable copy checks for updates like an installed one, but *Open release page* replaces *Download update*:
 download the new zip and replace the folder's files with it, keeping `data`. *Start with Windows
 minimized* starts the copy from where it is, so untick it before moving the folder.
 
 To uninstall, use *Settings → Apps → Installed apps* in Windows. Your settings, logs and cache stay
-in `%LOCALAPPDATA%\dev.syg.aram-mayhem-tracker`; delete that folder to remove everything. To remove
-a portable copy, delete its folder, and that same `%LOCALAPPDATA%` folder for WebView2's data.
+in `%LOCALAPPDATA%\fr.sygnano.aram-mayhem-tracker`; delete that folder to remove everything. To
+remove a portable copy, delete its folder, and that same `%LOCALAPPDATA%` folder for WebView2's data.
+
+Versions up to 1.2 kept that folder under another name, `%LOCALAPPDATA%\dev.syg.aram-mayhem-tracker`.
+Settings were not carried over from it, and it is no longer used, so it can be deleted.
 
 ## Using it
 
@@ -123,7 +126,7 @@ reached, the app carries on with the statistics already on disk.
   show in plain ARAM.
 - **The augment cards are not recognised**: open the diagnostics screen (the gear) during an offer.
   It shows whether the game window and the cards were found, and what was read.
-- **Something else**: the log is at `%LOCALAPPDATA%\dev.syg.aram-mayhem-tracker\logs\mayhem.log`.
+- **Something else**: the log is at `%LOCALAPPDATA%\fr.sygnano.aram-mayhem-tracker\logs\mayhem.log`.
   Please attach it to an [issue](https://github.com/Sygnano/aram-mayhem-tracker/issues).
 
 ## Building from source

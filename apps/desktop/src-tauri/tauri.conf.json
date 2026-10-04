@@ -2,8 +2,8 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "ARAM Mayhem Tracker",
   "mainBinaryName": "aram-mayhem-tracker",
-  "version": "1.2.1",
-  "identifier": "dev.syg.aram-mayhem-tracker",
+  "version": "1.3.0",
+  "identifier": "fr.sygnano.aram-mayhem-tracker",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -58,7 +58,9 @@
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDhBMkQxOTQ1MzdFREVFMkIKUldRcjd1MDNSUmt0aXFob2puUllaR2d5eHhFcVRXeEhQZW80NlU4RFc2QWtnUWFNL3F4VDZqNncK",
-      "endpoints": ["https://github.com/Sygnano/aram-mayhem-tracker/releases/latest/download/latest.json"],
+      "endpoints": [
+        "https://github.com/Sygnano/aram-mayhem-tracker/releases/latest/download/latest.json"
+      ],
       "requireSignedVersion": true,
       "windows": { "installMode": "passive" }
     }

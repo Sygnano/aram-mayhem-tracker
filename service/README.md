@@ -33,7 +33,7 @@ ADMIN_TOKEN=dev PORT=8123 DATABASE_PATH=./local.db pnpm dev                     
 SERVICE_URL=http://127.0.0.1:8123 ADMIN_TOKEN=dev node src/scripts/crawl.ts    # in another shell
 ```
 
-To point the desktop app at a local service, create `%LOCALAPPDATA%\dev.syg.aram-mayhem-tracker\tuning.json`
+To point the desktop app at a local service, create `%LOCALAPPDATA%\fr.sygnano.aram-mayhem-tracker\tuning.json`
 containing `{ "serviceBase": "http://127.0.0.1:8123" }` and restart the app. Delete the file
 afterwards: the app reads it at every start.
 

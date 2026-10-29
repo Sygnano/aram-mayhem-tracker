@@ -28,6 +28,9 @@ pub struct OverlayStatus {
     pub host_found: bool,
     /// The host has focus, or does not need it.
     pub host_focused: bool,
+    /// There is something to draw. In game an empty overlay is hidden, so the game is not composed
+    /// with the desktop for nothing (see `EngineState::overlay_has_content`).
+    pub has_content: bool,
     /// The overlay window is currently shown.
     pub visible: bool,
 }
@@ -83,8 +86,11 @@ pub fn setup(app: &AppHandle) {
 ///
 /// Being *visible* without focus is not the same as being *clickable* without focus — see
 /// [`sync_click_through`].
+///
+/// And it is hidden whenever `has_content` is false. Over the game that is most of the match, and it
+/// matters: a window over a borderless game, even an empty one, is what made the game lose its vsync.
 #[cfg(windows)]
-pub fn sync(app: &AppHandle, st: &mut OverlayState, target: OverlayTarget) -> OverlayStatus {
+pub fn sync(app: &AppHandle, st: &mut OverlayState, target: OverlayTarget, has_content: bool) -> OverlayStatus {
     use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_LBUTTON, VK_RBUTTON};
     use windows::Win32::UI::WindowsAndMessaging::{
         GetForegroundWindow, GetWindowLongPtrW, SetForegroundWindow, SetWindowDisplayAffinity, SetWindowLongPtrW,
@@ -93,7 +99,7 @@ pub fn sync(app: &AppHandle, st: &mut OverlayState, target: OverlayTarget) -> Ov
         WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
     };
 
-    let mut status = OverlayStatus { target: target.name(), ..Default::default() };
+    let mut status = OverlayStatus { target: target.name(), has_content, ..Default::default() };
     let Some(window) = app.get_webview_window("overlay") else { return status };
     let Some(overlay) = hwnd_of(&window) else { return status };
 
@@ -107,7 +113,7 @@ pub fn sync(app: &AppHandle, st: &mut OverlayState, target: OverlayTarget) -> Ov
     let needs_focus = matches!(target, OverlayTarget::Game);
     status.host_found = host.is_some();
     status.host_focused = host.is_some_and(|h| !needs_focus || foreground == h || foreground == overlay);
-    let show = status.host_found && status.host_focused;
+    let show = status.host_found && status.host_focused && has_content;
 
     let Some(host) = host.filter(|_| show) else {
         follow::set_host(None, overlay);
@@ -516,8 +522,8 @@ fn hwnd_of(window: &tauri::WebviewWindow) -> Option<windows::Win32::Foundation::
 
 /// The overlay is Windows-only; elsewhere it stays hidden.
 #[cfg(not(windows))]
-pub fn sync(_app: &AppHandle, _state: &mut OverlayState, target: OverlayTarget) -> OverlayStatus {
-    OverlayStatus { target: target.name(), ..Default::default() }
+pub fn sync(_app: &AppHandle, _state: &mut OverlayState, target: OverlayTarget, has_content: bool) -> OverlayStatus {
+    OverlayStatus { target: target.name(), has_content, ..Default::default() }
 }
 
 #[cfg(not(windows))]

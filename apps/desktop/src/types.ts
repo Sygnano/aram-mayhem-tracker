@@ -178,6 +178,8 @@ export interface Snapshot {
     target: "none" | "game" | "client";
     hostFound: boolean;
     hostFocused: boolean;
+    /** Something to draw. In game an empty overlay is hidden, so the game keeps its vsync. */
+    hasContent: boolean;
     visible: boolean;
   };
   /** The ARAM: Mayhem champ-select screen. Positions come from a fitted layout and everything else

@@ -221,6 +221,27 @@ impl EngineState {
         }
     }
 
+    /// Has the overlay anything to draw on its host? In game the window is shown only when it has.
+    ///
+    /// Any visible window over a borderless game, even a fully transparent one, makes Windows compose
+    /// the game with the desktop instead of letting it present on its own ("independent flip"), and a
+    /// composed game no longer keeps to its vsync: seen running at 500 fps on a 360 Hz display. Hidden
+    /// while it is empty, the overlay costs the game its own path only while augment cards or an
+    /// anvil are up.
+    ///
+    /// Mirrors what `Overlay.tsx` draws for the game: the cards being read, an offer's panels and
+    /// list, or the anvil labels. The champ-select blocks are always there while the client hosts.
+    pub fn overlay_has_content(&self) -> bool {
+        match self.overlay_target() {
+            OverlayTarget::Game => {
+                let offer = self.game.as_ref().is_some_and(|g| g.is_mayhem && g.offers.current().is_some());
+                self.vision.cards_on_screen || self.vision.anvil.is_some() || offer
+            }
+            OverlayTarget::Client => true,
+            OverlayTarget::None => false,
+        }
+    }
+
     /// Is an ARAM champ select open? Wider than Mayhem on purpose: the screen this reads has the same
     /// shape in plain ARAM (`queues::has_aram_champ_select`).
     pub fn in_aram_champ_select(&self) -> bool {
@@ -697,6 +718,32 @@ mod tests {
         assert_eq!(st.overlay_target(), OverlayTarget::Game);
         st.settings.overlay_enabled = false;
         assert_eq!(st.overlay_target(), OverlayTarget::None);
+    }
+
+    /// In game the overlay is only on screen while it draws something: an empty window over the game
+    /// is enough to take the game off its own path to the display and out of its vsync.
+    #[test]
+    fn an_empty_overlay_stays_off_the_game() {
+        let mut st = EngineState::default();
+        assert!(!st.overlay_has_content(), "no host, nothing to show");
+
+        st.client.queue = Some(queue(2400, "ARAM: Mayhem"));
+        st.client.phase = Some(GameflowPhase::InProgress);
+        assert_eq!(st.overlay_target(), OverlayTarget::Game);
+        assert!(!st.overlay_has_content(), "in game with no cards up");
+
+        st.vision.cards_on_screen = true;
+        assert!(st.overlay_has_content(), "cards up: at least the reading line is drawn");
+        st.vision.cards_on_screen = false;
+        assert!(!st.overlay_has_content(), "and hidden again once they go");
+
+        // Champ select keeps its blocks up for the whole screen, as before.
+        st.client.queue = Some(queue(450, "ARAM"));
+        st.client.phase = Some(GameflowPhase::ChampSelect);
+        st.champ_select.session =
+            Some(league_api::lcu::ChampSelect { team: vec![Some(22)], phase: "BAN_PICK".into(), ..Default::default() });
+        assert_eq!(st.overlay_target(), OverlayTarget::Client);
+        assert!(st.overlay_has_content());
     }
 
     /// One overlay window, two possible hosts. Which one it is glued to is decided here, and getting

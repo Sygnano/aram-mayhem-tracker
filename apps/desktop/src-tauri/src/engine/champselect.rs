@@ -43,6 +43,19 @@ const POLL: Duration = Duration::from_millis(200);
 /// whatever the client reports.
 const CARDS_ENTRANCE: Duration = Duration::from_secs(2);
 
+/// Which entry of the subset list the pick card at screen position `card` shows.
+///
+/// The list is **not** in drawing order: with three cards the client puts the third entry in the
+/// middle, so the list `[a, b, c]` is drawn `a c b`. Seen live with a list of Diana, Yasuo, Shen drawn
+/// as Diana, Shen, Yasuo. Two cards are drawn in list order.
+fn subset_index(card: usize, count: usize) -> usize {
+    match (count, card) {
+        (3, 1) => 2,
+        (3, 2) => 1,
+        _ => card,
+    }
+}
+
 /// Which surface a block belongs to.
 ///
 /// Worth distinguishing because they mean different things: a pick card is a decision being made
@@ -212,7 +225,7 @@ impl ChampSelectState {
         // fifteen seconds, and a button that disappears while being aimed at is worse than none.
         let offered = self.offered();
         for (index, rect) in layout.pick_card_blocks(&client, offered.len()).into_iter().enumerate() {
-            slots.push(block(Surface::PickCard, index, rect, offered[index], false));
+            slots.push(block(Surface::PickCard, index, rect, offered[subset_index(index, offered.len())], false));
         }
 
         // The available-champions strip is the bench, in order, and it is what a swap targets.
@@ -407,7 +420,8 @@ mod tests {
         // bench held something else entirely.
         let mut st = champ_select_state(session(vec![None; 5], vec![103, 235, 360], vec![112, 40, 421], "BAN_PICK"));
         let cards = blocks(&st, champselect::Surface::PickCard);
-        assert_eq!(cards.iter().map(|c| c.champion_id).collect::<Vec<_>>(), vec![112, 40, 421]);
+        // Left to right on screen: the client draws the list's third entry in the middle.
+        assert_eq!(cards.iter().map(|c| c.champion_id).collect::<Vec<_>>(), vec![112, 421, 40]);
         assert!(cards.iter().all(|c| !c.swappable), "the buttons live on the strip");
         assert!((cards[1].x + cards[1].width / 2.0 - 0.5).abs() < 0.002, "the middle card is centred");
         assert_eq!(st.snapshot().champ_select.card_count, 3);
@@ -433,7 +447,7 @@ mod tests {
         // A two-champion offer is the same layout, one card narrower.
         let two = champ_select_state(session(vec![None; 5], Vec::new(), vec![112, 40], "BAN_PICK"));
         let two = blocks(&two, champselect::Surface::PickCard);
-        assert_eq!(two.len(), 2);
+        assert_eq!(two.iter().map(|c| c.champion_id).collect::<Vec<_>>(), vec![112, 40], "two are drawn in list order");
         assert!(two[0].x > cards[0].x, "two cards start further in than three");
         assert!((two[0].width - cards[0].width).abs() < 1e-6, "the cards keep their size");
     }

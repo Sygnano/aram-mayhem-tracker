@@ -301,8 +301,10 @@ pub struct ChampSelect {
     /// The bench, in `benchChampions` order. This is what the available-champions strip shows, and
     /// the only thing a swap can target.
     pub bench: Vec<i64>,
-    /// The champions offered on the big pick cards, left to right, from
-    /// `/lol-lobby-team-builder/champ-select/v1/subset-champion-list`.
+    /// The champions offered on the big pick cards, from
+    /// `/lol-lobby-team-builder/champ-select/v1/subset-champion-list`, in the endpoint's order —
+    /// which is **not** the drawing order: with three cards the third entry is drawn in the middle.
+    /// The desktop overlay maps one to the other.
     ///
     /// A **separate endpoint**, and separate from the bench: during the card phase the two
     /// differ entirely. From three dumps taken across a real champ select: the local player had *no*

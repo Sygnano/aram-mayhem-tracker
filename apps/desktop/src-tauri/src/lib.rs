@@ -126,11 +126,11 @@ pub fn run() {
                     // Owned by this task alone: nothing else places the overlay.
                     let mut overlay_state = OverlayState::default();
                     loop {
-                        let (target, buttons) = {
+                        let (target, has_content, buttons) = {
                             let st = engine.lock();
-                            (st.overlay_target(), st.champ_select.clickable_screen_rects())
+                            (st.overlay_target(), st.overlay_has_content(), st.champ_select.clickable_screen_rects())
                         };
-                        let status = overlay::sync(&handle, &mut overlay_state, target);
+                        let status = overlay::sync(&handle, &mut overlay_state, target, has_content);
                         overlay::sync_click_through(&handle, &mut overlay_state, &buttons);
                         engine.lock().overlay_status = status;
                         let idle = target == OverlayTarget::None && !status.visible;

@@ -82,6 +82,6 @@ fn start_session(st: &mut EngineState, data: &AllGameData) {
 
 fn end_session(st: &mut EngineState) {
     if let Some(game) = st.game.take() {
-        st.log_event(format!("game ended at {:.0}s; offers seen {}", game.last_game_time, game.offers.stages_seen()));
+        st.log_event(format!("game ended at {:.0}s; highest stage {}", game.last_game_time, game.offers.stages_seen()));
     }
 }

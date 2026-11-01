@@ -19,8 +19,9 @@ pub enum AugmentTrigger {
     Level { level: u8 },
 }
 
-/// When offers unlock: level 1 (game start), 7, 11 and 15 — confirmed in game (2026-09-29), with
-/// one reroll per card. Only used to number stages; offers themselves are detected on screen.
+/// The levels aramkit's stages stand for: 1 (game start), 7, 11 and 15 — confirmed in game
+/// (2026-09-29), with one reroll per card. Only used to number stages; offers themselves are
+/// detected on screen, and the game can open more of them than there are stages (D-093).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AugmentSchedule {
     pub triggers: Vec<AugmentTrigger>,
@@ -50,6 +51,15 @@ impl AugmentSchedule {
             })
             .count() as u8
     }
+
+    /// The stage whose level is nearest to `level`, 1-based. A tie goes to the earlier stage.
+    pub fn nearest_stage(&self, level: u8) -> u8 {
+        let distance = |t: &AugmentTrigger| match t {
+            AugmentTrigger::GameStart => level.abs_diff(1),
+            AugmentTrigger::Level { level: l } => level.abs_diff(*l),
+        };
+        self.triggers.iter().enumerate().min_by_key(|(_, t)| distance(t)).map_or(1, |(i, _)| i as u8 + 1)
+    }
 }
 
 /// One OCR pass over the three card title regions, after name matching.
@@ -67,7 +77,8 @@ impl OfferReading {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Offer {
-    /// 1-based offer number within the game.
+    /// aramkit's stage number, 1-4: the one nearest the level the offer opened at, however many
+    /// offers came before it. It stays fixed while the offer is open.
     pub stage: u8,
     pub slots: [Option<AugmentId>; OFFER_SLOTS],
     pub shown_at: GameSeconds,
@@ -112,6 +123,7 @@ impl Default for OfferTrackerConfig {
 pub struct OfferTracker {
     cfg: OfferTrackerConfig,
     current: Option<Offer>,
+    /// The highest stage an offer has closed at. Not a count of offers: several can share a stage.
     stages_seen: u8,
     visible_streak: u32,
     hidden_streak: u32,
@@ -151,9 +163,9 @@ impl OfferTracker {
         self.seen.extend(slots.iter().flatten().copied());
     }
 
-    /// Feed a reading taken at `at`. `stages_unlocked` comes from [`AugmentSchedule`]; it only
-    /// matters when the app was started mid-game and missed earlier offers.
-    pub fn feed(&mut self, at: GameSeconds, reading: OfferReading, stages_unlocked: u8) -> Option<OfferEvent> {
+    /// Feed a reading taken at `at`. `stage` comes from [`AugmentSchedule::nearest_stage`] and is
+    /// what an offer opening on this reading takes.
+    pub fn feed(&mut self, at: GameSeconds, reading: OfferReading, stage: u8) -> Option<OfferEvent> {
         let visible = reading.recognised() >= self.cfg.min_recognised;
         if visible {
             self.visible_streak += 1;
@@ -178,10 +190,7 @@ impl OfferTracker {
                     return None;
                 }
                 let reopened = self.last_closed.as_ref().filter(|last| same_cards(&last.slots, &merged.slots));
-                let stage = match reopened {
-                    Some(last) => last.stage,
-                    None => (self.stages_seen + 1).max(stages_unlocked).max(1),
-                };
+                let stage = reopened.map_or(stage, |last| last.stage);
                 let offer = Offer { stage, slots: merged.slots, shown_at: at };
                 self.first_candidate = None;
                 self.pending_change = Default::default();
@@ -301,6 +310,19 @@ mod tests {
     }
 
     #[test]
+    fn a_level_maps_to_the_nearest_stage_and_a_tie_to_the_earlier_one() {
+        let s = AugmentSchedule::default();
+        let stages: Vec<u8> = (1..=18).map(|level| s.nearest_stage(level)).collect();
+        //                level: 1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18
+        assert_eq!(stages, [1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4]);
+    }
+
+    #[test]
+    fn a_schedule_with_nothing_in_it_is_stage_one() {
+        assert_eq!(AugmentSchedule { triggers: vec![] }.nearest_stage(9), 1);
+    }
+
+    #[test]
     fn show_reroll_close_cycle() {
         let mut t = OfferTracker::new(OfferTrackerConfig::default());
         assert_eq!(t.feed(1.0, r(Some(1), None, Some(3)), 1), None);
@@ -341,6 +363,43 @@ mod tests {
         }
     }
 
+    /// Six offers in a game: aramkit has four stages, so counting them asked for a stage 5 and a
+    /// stage 6 no pool answers, and put a bonus offer in a stage above the one it was offered at.
+    #[test]
+    fn extra_offers_share_a_stage_instead_of_counting_past_the_last_one() {
+        let mut t = OfferTracker::new(OfferTrackerConfig::default());
+        let schedule = AugmentSchedule::default();
+        let hidden = r(None, None, None);
+        let levels = [1, 7, 9, 11, 13, 15];
+
+        let mut stages = Vec::new();
+        for (i, level) in (0i64..).zip(levels) {
+            let cards = r(Some(10 * i + 1), Some(10 * i + 2), Some(10 * i + 3));
+            let stage = schedule.nearest_stage(level);
+            t.feed(i as f64, cards, stage);
+            match t.feed(i as f64 + 0.5, cards, stage) {
+                Some(OfferEvent::Shown { offer }) => stages.push(offer.stage),
+                other => panic!("{other:?}"),
+            }
+            for _ in 0..3 {
+                t.feed(i as f64 + 0.6, hidden, stage);
+            }
+        }
+        assert_eq!(stages, [1, 2, 2, 3, 3, 4]);
+        assert_eq!(t.stages_seen(), 4);
+    }
+
+    /// The level can move on while the cards are up, and the panel must not change under the player.
+    #[test]
+    fn an_offer_keeps_the_stage_it_opened_at() {
+        let mut t = OfferTracker::new(OfferTrackerConfig::default());
+        let offer = r(Some(1), Some(2), Some(3));
+        t.feed(0.0, offer, 2);
+        t.feed(0.5, offer, 2);
+        t.feed(1.0, offer, 3);
+        assert_eq!(t.current().map(|o| o.stage), Some(2));
+    }
+
     #[test]
     fn hiding_and_reshowing_keeps_the_stage() {
         let mut t = OfferTracker::new(OfferTrackerConfig::default());
@@ -352,19 +411,19 @@ mod tests {
             t.feed(1.0 + i as f64, hidden, 1);
         }
         assert!(t.current().is_none());
-        // Same cards again (one misread): still stage 1.
-        t.feed(10.0, r(Some(1), Some(2), None), 1);
-        match t.feed(10.5, offer, 1) {
+        // Same cards again (one misread), a level later: still stage 1.
+        t.feed(10.0, r(Some(1), Some(2), None), 2);
+        match t.feed(10.5, offer, 2) {
             Some(OfferEvent::Shown { offer }) => assert_eq!(offer.stage, 1),
             other => panic!("{other:?}"),
         }
-        // Closed again, then different cards: the next stage.
+        // Closed again, then different cards: the stage of the level now.
         for i in 0..3 {
-            t.feed(11.0 + i as f64, hidden, 1);
+            t.feed(11.0 + i as f64, hidden, 2);
         }
         let next = r(Some(7), Some(8), Some(9));
-        t.feed(400.0, next, 1);
-        match t.feed(400.5, next, 1) {
+        t.feed(400.0, next, 2);
+        match t.feed(400.5, next, 2) {
             Some(OfferEvent::Shown { offer }) => assert_eq!(offer.stage, 2),
             other => panic!("{other:?}"),
         }

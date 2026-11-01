@@ -18,7 +18,8 @@ function spacedDelta(pp: number): string {
 }
 
 /**
- * The four offers, by aramkit stage number and the in-game level it happens at.
+ * The four stages, by aramkit stage number and the in-game level it stands for. An offer opened at
+ * any other level belongs to the nearest of them (D-093).
  *
  * Rendered in full every time. An augment that is simply not offered at a level - quests and the
  * like are not - shows a dash there, rather than the row disappearing and making the panel a
@@ -232,8 +233,8 @@ function CardStats({ info, stage, simple }: { info: RankedAugment; stage: number
 
       <div className="ov-sep" />
 
-      {/* The four offers, at levels 1, 7, 11 and 15. Only the one being offered now reads at full
-          strength; the others are dimmed because they are not the decision in front of you. */}
+      {/* The four stages, at levels 1, 7, 11 and 15. Only the offer's own reads at full strength; the
+          others are dimmed because they are not the decision in front of you. */}
       <div className="ov-col ov-levels">
         {STAGES.map(({ stage: n, level }) => {
           const row = info.byStage.find((b) => b.stage === n);

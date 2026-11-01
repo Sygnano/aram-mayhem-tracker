@@ -413,9 +413,9 @@ fn apply(engine: &Engine, job: &VisionJob, out: TickOutput, rate: f64) {
     let mut events = Vec::new();
     if let Some(game) = st.game.as_mut().filter(|g| g.id == job.session_id) {
         if let Some(reading) = out.offer {
-            let unlocked = game.stages_unlocked(&schedule);
-            if let Some(e) = game.offers.feed(at, reading, unlocked) {
-                events.push(format!("augments {e:?}"));
+            let level = game.data.active_player.level;
+            if let Some(e) = game.offers.feed(at, reading, schedule.nearest_stage(level)) {
+                events.push(format!("augments {e:?} at level {level}"));
             }
         }
     }
@@ -564,6 +564,34 @@ mod tests {
             names,
             vec![Some("Scopier Weapons".into()), Some("Vulnerability".into()), Some("Combusting Interest".into())]
         );
+    }
+
+    /// A fifth offer used to come out as stage 5, which no pool answers.
+    #[test]
+    fn a_fifth_offer_takes_its_stage_from_the_level() {
+        let engine = engine_in_mayhem_game(700.0);
+        {
+            let mut st = engine.lock();
+            let game = st.game.as_mut().unwrap();
+            game.data.active_player.level = 13;
+            for stage in 1..=4i64 {
+                let cards = OfferReading { slots: [Some(900 + stage), Some(910 + stage), Some(920 + stage)] };
+                for _ in 0..2 {
+                    game.offers.feed(stage as f64, cards, stage as u8);
+                }
+                for _ in 0..3 {
+                    game.offers.feed(stage as f64, OfferReading::default(), stage as u8);
+                }
+            }
+            assert!(game.offers.current().is_none());
+        }
+
+        let mut w = worker(gold_offer(), &["Scopier Weapons", "Vulnerability", "Combusting Interest"]);
+        w.tick(&engine);
+        w.tick(&engine);
+
+        let snap = engine.lock().snapshot();
+        assert_eq!(snap.augments.offer.expect("the offer on screen").stage, 3, "level 13 is nearest stage 3's level");
     }
 
     #[test]

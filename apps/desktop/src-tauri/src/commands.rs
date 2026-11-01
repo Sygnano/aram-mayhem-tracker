@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use league_api::lcu::{ChatStatus, LcuClient};
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Emitter, State};
 
 use crate::config::Settings;
 use crate::engine::snapshot::AppSnapshot;
@@ -32,6 +32,7 @@ pub fn get_config(engine: Shared<'_>) -> Settings {
 pub struct SettingsPatch {
     /// An empty string clears it, which hands the choice back to discovery.
     league_dir: Option<String>,
+    language: Option<crate::config::Language>,
     overlay_enabled: Option<bool>,
     simple_mode: Option<bool>,
     show_augment_list: Option<bool>,
@@ -48,6 +49,9 @@ pub fn save_settings(app: AppHandle, engine: Shared<'_>, settings: SettingsPatch
     let (keep_in_tray, start_minimized) = {
         let mut st = engine.lock();
         let cfg = &mut st.settings;
+        if let Some(language) = settings.language {
+            cfg.language = language;
+        }
         if let Some(dir) = settings.league_dir {
             let dir = dir.trim();
             cfg.league_dir = (!dir.is_empty()).then(|| dir.into());
@@ -84,6 +88,10 @@ pub fn save_settings(app: AppHandle, engine: Shared<'_>, settings: SettingsPatch
         shell
     };
     engine.save_settings_if_dirty();
+    if let Some(language) = settings.language {
+        app.emit("language-changed", language).map_err(|e| e.to_string())?;
+        crate::shell::refresh_language(&app, language).map_err(|e| e.to_string())?;
+    }
     crate::shell::set_tray_visible(&app, keep_in_tray);
     crate::shell::sync_autostart(&app, start_minimized)
 }

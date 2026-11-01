@@ -44,9 +44,30 @@ fn mode_name(locale: Option<&str>) -> &'static str {
     }
 }
 
+fn is_portuguese(locale: Option<&str>) -> bool {
+    locale.is_some_and(|l| l.to_ascii_lowercase().starts_with("pt"))
+}
+
 /// The archetype's name, in the client's language. These are every key aramkit used across all 173
 /// champions on 16.19; one it adds later falls back to its key, `snake_case` turned into words.
 fn build_type(key: &str, locale: Option<&str>) -> String {
+    if is_portuguese(locale) {
+        let label = match key {
+            "ap" => Some("AP"),
+            "ad" => Some("AD"),
+            "tank" => Some("Tank"),
+            "bruiser" => Some("Bruiser"),
+            "crit" => Some("Crit"),
+            "lethality" => Some("Lethality"),
+            "on_hit" => Some("On-Hit"),
+            "utility" => Some("Utility"),
+            "hybrid" => Some("Hybrid"),
+            _ => None,
+        };
+        if let Some(label) = label {
+            return crate::i18n::text(label, true).to_owned();
+        }
+    }
     let fr = locale.is_some_and(|l| l.to_ascii_lowercase().starts_with("fr"));
     let known = match (key, fr) {
         ("ap", _) => "AP",
@@ -95,6 +116,9 @@ pub fn build(
     archetypes: &[ArchetypeBuild],
     patch: &str,
 ) -> Value {
+    // These are application-owned section labels. Item ids are unchanged, and the League client
+    // resolves their official names in its own locale.
+    let label = |key: &'static str| crate::i18n::text(key, is_portuguese(locale));
     let sets: Vec<Value> = archetypes
         .iter()
         .enumerate()
@@ -104,18 +128,18 @@ pub fn build(
             // Each starter option is a set of items bought together, so they share one block.
             let starters: Vec<i64> = a.starters.iter().flat_map(|s| s.items.iter().copied()).collect();
             if !starters.is_empty() {
-                blocks.push(block("Starters", &dedupe(&starters)));
+                blocks.push(block(label("Starters"), &dedupe(&starters)));
             }
             let boots: Vec<i64> = a.boots.iter().map(|b| b.id).collect();
             if !boots.is_empty() {
-                blocks.push(block("Boots", &boots));
+                blocks.push(block(label("Boots"), &boots));
             }
             if !a.core.is_empty() {
-                blocks.push(block("Core (in order)", &a.core));
+                blocks.push(block(label("Core (in order)"), &a.core));
             }
             let situational: Vec<i64> = a.situational.iter().map(|s| s.id).collect();
             if !situational.is_empty() {
-                blocks.push(block("Situational", &situational));
+                blocks.push(block(label("Situational"), &situational));
             }
 
             json!({
@@ -335,6 +359,25 @@ mod tests {
         assert_eq!(title("on_hit", "Twitch", Some("fr_FR"), 0.6012), "À l'impact Twitch - 60.1% - ARAM du chaos");
         assert_eq!(title("on_hit", "Twitch", Some("en_US"), 0.6012), "On-Hit Twitch - 60.1% - ARAM Mayhem");
         assert_eq!(title("crit", "Twitch", None, 0.5), "Crit Twitch - 50.0% - ARAM Mayhem");
+        assert_eq!(build_type("crit", Some("pt_BR")), "Crítico");
+        assert_eq!(build_type("on_hit", Some("pt-BR")), "Efeitos ao contato");
+    }
+
+    #[test]
+    fn portuguese_item_sections_preserve_item_ids_and_purchase_order() {
+        let english = build(157, "Twitch", Some("en_US"), &[archetype("crit")], "16.21");
+        let portuguese = build(157, "Twitch", Some("pt_BR"), &[archetype("crit")], "16.21");
+        let en = blocks(&english[0]);
+        let pt = blocks(&portuguese[0]);
+        assert_eq!(
+            pt.iter().map(|(name, _)| name.as_str()).collect::<Vec<_>>(),
+            ["Itens iniciais", "Botas", "Itens principais (em ordem)", "Situacionais"]
+        );
+        assert_eq!(
+            en.iter().map(|(_, ids)| ids).collect::<Vec<_>>(),
+            pt.iter().map(|(_, ids)| ids).collect::<Vec<_>>()
+        );
+        assert_eq!(english[0]["uid"], portuguese[0]["uid"]);
     }
 
     #[test]

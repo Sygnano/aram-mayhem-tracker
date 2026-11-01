@@ -30,7 +30,12 @@ The statistics come from [aramkit](https://aramkit.com), refreshed with each pat
 - **Supported client languages.** Augment and anvil cards are read off the screen with a text
   recognition model that knows Latin scripts and Chinese; English and French are confirmed. On
   Korean, Japanese, Russian, Greek, Thai and other non-Latin clients the in-game cards are not read
-  yet. Champ select and item sets work in every language. Item set titles are in English or French.
+  yet. Champ select and item sets work in every language. Item-set build descriptions and sections
+  additionally support Brazilian Portuguese; existing English and French labels are preserved.
+- **Interface language**: choose **Automatic (system)**, **English** or **Português (Brasil)** in
+  Settings. The choice is saved and applies to both windows and the tray menu. Game names and OCR
+  continue to follow the League client. Portuguese text matching has regression tests; recognition
+  of real Portuguese screenshots still needs in-game validation. See [LOCALIZATION.md](LOCALIZATION.md).
 - **The installer is not code-signed yet**, so Windows SmartScreen warns before the first run.
 
 ## Install

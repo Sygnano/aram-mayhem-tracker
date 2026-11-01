@@ -51,6 +51,9 @@ jobs:
       - name: Typecheck
         if: matrix.check == 'clippy'
         run: pnpm typecheck
+      - name: Localization tests
+        if: matrix.check == 'clippy'
+        run: pnpm --filter desktop test:i18n
       # Both jobs need it: `tauri::generate_context!` embeds `apps/desktop/dist`, in clippy too.
       - name: Build the frontend
         run: pnpm --filter desktop build

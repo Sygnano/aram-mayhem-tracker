@@ -23,10 +23,24 @@ use mayhem_vision::matcher::MatcherConfig;
 use mayhem_vision::reroll::RerollDetectorConfig;
 use serde::{Deserialize, Serialize};
 
+/// Persisted language choices. Older configuration files default to system detection.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Language {
+    #[default]
+    #[serde(rename = "auto")]
+    Auto,
+    #[serde(rename = "en")]
+    English,
+    #[serde(rename = "pt-BR")]
+    PortugueseBrazil,
+}
+
 /// The settings the companion window edits. Persisted in `config.json`; mirrored in `src/types.ts`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
+    /// Interface language; game data continues to follow the League client.
+    pub language: Language,
     /// League install directory. Typed in by the user, or remembered from the first time discovery
     /// found the client, so it is known while the client is closed.
     pub league_dir: Option<PathBuf>,
@@ -59,6 +73,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
+            language: Language::Auto,
             league_dir: None,
             manage_item_sets: true,
             overlay_enabled: true,
@@ -176,6 +191,19 @@ impl Tuning {
 mod tests {
     use super::*;
 
+    #[test]
+    fn language_defaults_for_existing_installs_and_survives_a_restart() {
+        let old: Settings = serde_json::from_str(r#"{"autoAccept":true}"#).unwrap();
+        assert_eq!(old.language, Language::Auto);
+        for language in [Language::Auto, Language::English, Language::PortugueseBrazil] {
+            let path = temp(&format!("language-{language:?}"));
+            let settings = Settings { language, ..old.clone() };
+            settings.save(&path).unwrap();
+            assert_eq!(Settings::load(&path), settings);
+            let _ = std::fs::remove_dir_all(path.parent().unwrap());
+        }
+    }
+
     fn temp(name: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!("mayhem-config-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
@@ -215,6 +243,7 @@ mod tests {
                 "autoUpdateStatistics",
                 "checkUpdatesOnStartup",
                 "keepInTray",
+                "language",
                 "leagueDir",
                 "manageItemSets",
                 "overlayEnabled",

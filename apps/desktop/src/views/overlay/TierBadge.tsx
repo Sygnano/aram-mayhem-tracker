@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 /** One colour per grade letter, shared by champ select and the augment panels so they never disagree.
  *  Which letter a number earns is decided in the backend (`mayhem_core::ranking`); this only says
  *  what a letter looks like. */
@@ -37,7 +38,7 @@ export function TierBadge({
   const grad = `tier-${tier === "?" ? "unknown" : tier}-${color.replace("#", "")}${solid ? "-solid" : ""}`;
   const shape = "M20 1 L38 11 L38 35 L20 45 L2 35 L2 11 Z";
   return (
-    <svg className={className} viewBox="0 0 40 46" aria-label={`Tier ${tier}`}>
+    <svg className={className} viewBox="0 0 40 46" aria-label={t("Tier {tier}", { tier })}>
       <defs>
         <linearGradient id={grad} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity={solid ? "0.5" : "0.38"} />

@@ -64,8 +64,8 @@ pub fn patch_from_version(version: &str) -> Option<String> {
 pub fn locale_dir(game_locale: Option<&str>) -> String {
     match game_locale.map(str::trim) {
         None | Some("") => "default".into(),
-        Some(l) if l.eq_ignore_ascii_case("en_US") => "default".into(),
-        Some(l) => l.to_ascii_lowercase(),
+        Some(l) if l.replace('-', "_").eq_ignore_ascii_case("en_US") => "default".into(),
+        Some(l) => l.replace('-', "_").to_ascii_lowercase(),
     }
 }
 
@@ -183,7 +183,20 @@ impl CDragon {
     /// Separate from [`CDragon::load`] so that a failure here can be retried alone: the rest of the
     /// static data is fine without it, and reloading all of it to get this back would be wasteful.
     pub async fn champions(&self, patch: &str) -> Result<ChampionIndex, StaticDataError> {
-        let champions: Vec<ChampionSummary> = self.file(patch, "default", "champion-summary.json").await?;
+        self.champions_localized(patch, "default").await
+    }
+
+    pub async fn champions_localized(&self, patch: &str, locale: &str) -> Result<ChampionIndex, StaticDataError> {
+        let champions: Vec<ChampionSummary> = match self.file(patch, locale, "champion-summary.json").await {
+            Ok(champions) => champions,
+            Err(error) if locale != "default" => {
+                // Localized names are optional. Preserve the existing alias/id lookup when only
+                // the English summary is cached or a localized endpoint is temporarily missing.
+                log::warn!("champion names in {locale} unavailable ({error}); using the default summary");
+                self.file(patch, "default", "champion-summary.json").await?
+            }
+            Err(error) => return Err(error),
+        };
         Ok((crate::champions::index(&champions), crate::champions::names(&champions)))
     }
 
@@ -205,7 +218,7 @@ impl CDragon {
         // Best-effort, because this only enables the statistics lookup — without it the offer is
         // still read and named, so a missing champion-summary.json must not fail the whole load. An
         // empty index is retried on its own with [`CDragon::champions`].
-        let (champion_ids, champion_names) = match self.champions(&patch).await {
+        let (champion_ids, champion_names) = match self.champions_localized(&patch, &locale).await {
             Ok(champions) => champions,
             Err(e) => {
                 log::warn!("champion ids unavailable, augment statistics will be skipped until they load: {e}");
@@ -240,6 +253,9 @@ mod tests {
         assert_eq!(locale_dir(None), "default");
         assert_eq!(locale_dir(Some("en_US")), "default");
         assert_eq!(locale_dir(Some("fr_FR")), "fr_fr");
+        assert_eq!(locale_dir(Some("pt_BR")), "pt_br");
+        assert_eq!(locale_dir(Some("pt-BR")), "pt_br");
+        assert_eq!(locale_dir(Some("en-US")), "default");
     }
 
     #[tokio::test]
@@ -303,6 +319,40 @@ mod tests {
         assert!(cd.file::<Vec<AugmentList>>("16.19", "default", "augment-lists.json").await.is_err());
         assert!(!cached.exists());
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn portuguese_champion_names_keep_locale_independent_ids_and_separate_cache() {
+        let dir = std::env::temp_dir().join(format!("mayhem-static-ptbr-{}", std::process::id()));
+        for (locale, name) in [("default", "Nunu & Willump"), ("pt_br", "Nunu e Willump")] {
+            let folder = dir.join("16.21").join(locale);
+            std::fs::create_dir_all(&folder).unwrap();
+            let body = serde_json::json!([{ "id": 20, "alias": "Nunu", "name": name }]);
+            std::fs::write(folder.join("champion-summary.json"), body.to_string()).unwrap();
+        }
+        let cd = CDragon::with_base("http://127.0.0.1:9", &dir);
+        let (english_ids, english_names) = cd.champions("16.21").await.unwrap();
+        let (portuguese_ids, portuguese_names) = cd.champions_localized("16.21", "pt_br").await.unwrap();
+        assert_eq!(english_ids.get("nunu"), portuguese_ids.get("nunu"));
+        assert_eq!(portuguese_ids.get("nunu"), Some(&20));
+        assert_eq!(portuguese_names.get(&20).map(String::as_str), Some("Nunu e Willump"));
+        assert_eq!(english_names.get(&20).map(String::as_str), Some("Nunu & Willump"));
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[tokio::test]
+    async fn missing_localized_names_do_not_break_cached_champion_identity() {
+        let dir = std::env::temp_dir().join(format!("mayhem-static-ptbr-fallback-{}", std::process::id()));
+        let folder = dir.join("16.21").join("default");
+        std::fs::create_dir_all(&folder).unwrap();
+        std::fs::write(folder.join("champion-summary.json"), r#"[{"id":20,"alias":"Nunu","name":"Nunu & Willump"}]"#)
+            .unwrap();
+        let cd = CDragon::with_base("http://127.0.0.1:9", &dir);
+        let (ids, names) = cd.champions_localized("16.21", "pt_br").await.unwrap();
+        assert_eq!(ids.get("nunu"), Some(&20));
+        assert_eq!(names.get(&20).map(String::as_str), Some("Nunu & Willump"));
+        assert!(!dir.join("16.21/pt_br/champion-summary.json").exists());
+        let _ = std::fs::remove_dir_all(dir);
     }
 
     #[test]

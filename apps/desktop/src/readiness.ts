@@ -1,3 +1,4 @@
+import { decimal, detail, t } from "./i18n";
 import type { Snapshot } from "./types";
 
 export type Readiness = { level: "ok" | "waiting" | "error"; text: string };
@@ -10,29 +11,29 @@ export type Readiness = { level: "ok" | "waiting" | "error"; text: string };
 export function readiness(s: Snapshot): Readiness {
   // A stopped part of the backend comes first: everything below it may be reading stale state.
   if (s.diagnostics.faults.length > 0) {
-    return { level: "error", text: `${s.diagnostics.faults[0]}. Restart the app.` };
+    return { level: "error", text: t("{detail}. Restart the app.", { detail: detail(s.diagnostics.faults[0]) }) };
   }
   if (!s.vision.available) {
     // No reason yet means the reader's thread has not reported in, which only lasts a moment.
     return s.vision.unavailableReason
-      ? { level: "error", text: s.vision.unavailableReason }
-      : { level: "waiting", text: "Starting…" };
+      ? { level: "error", text: detail(s.vision.unavailableReason) }
+      : { level: "waiting", text: t("Starting…") };
   }
   if (!s.staticData.loaded) {
     return s.staticData.error
-      ? { level: "error", text: `Game data did not load: ${s.staticData.error}` }
-      : { level: "waiting", text: "Loading game data…" };
+      ? { level: "error", text: t("Game data did not load: {detail}", { detail: detail(s.staticData.error) }) }
+      : { level: "waiting", text: t("Loading game data…") };
   }
   // Only the first download holds the app up. A failed update with statistics already on disk
   // keeps them, and stays green.
   if (!s.dataset.loaded) {
-    if (s.dataset.downloading) return { level: "waiting", text: `Downloading statistics… ${progress(s.dataset.downloading)}` };
+    if (s.dataset.downloading) return { level: "waiting", text: t("Downloading statistics… {progress}", { progress: progress(s.dataset.downloading) }) };
     return s.dataset.error
-      ? { level: "error", text: `Statistics did not download: ${s.dataset.error}. Trying again every minute.` }
-      : { level: "waiting", text: "Downloading statistics…" };
+      ? { level: "error", text: t("Statistics did not download: {detail}. Trying again every minute.", { detail: detail(s.dataset.error) }) }
+      : { level: "waiting", text: t("Downloading statistics…") };
   }
-  if (s.client.error) return { level: "error", text: s.client.error };
-  if (!s.client.connected) return { level: "waiting", text: "Waiting for the League client" };
+  if (s.client.error) return { level: "error", text: detail(s.client.error) };
+  if (!s.client.connected) return { level: "waiting", text: t("Waiting for the League client") };
   return { level: "ok", text: "OK" };
 }
 
@@ -48,5 +49,5 @@ export function overlayReady(s: Snapshot): boolean {
 
 /** "40%", or "5.2 MB" when the size is not known. */
 export function progress([received, total]: [number, number | null]): string {
-  return total ? `${Math.floor((100 * received) / total)}%` : `${(received / 1_000_000).toFixed(1)} MB`;
+  return total ? `${Math.floor((100 * received) / total)}%` : `${decimal(received / 1_000_000, 1)} MB`;
 }

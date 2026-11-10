@@ -561,6 +561,11 @@ impl EngineState {
         if self.matcher.is_none() {
             return Some("augment names not loaded (static data)".into());
         }
+        // Without shard names a stat anvil offer reads as augment cards nothing matches, and this
+        // line is the only thing on screen that can say so.
+        if self.anvils.matcher.as_ref().is_none_or(|m| m.is_empty()) {
+            return Some("stat anvil names not loaded, so anvil cards cannot be read".into());
+        }
         None
     }
 }

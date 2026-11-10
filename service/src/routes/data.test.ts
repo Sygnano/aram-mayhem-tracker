@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { crawlFrom } from "../test/helpers.ts";
-import { DATA, service, VERSIONS } from "../test/patch.ts";
+import { DATA, fixture, service, VERSIONS } from "../test/patch.ts";
 
 describe("/v1/pool", () => {
   it("ranks one rarity's pool, champion data first, unseen augments last", async () => {
@@ -261,6 +261,43 @@ describe("/v1/anvils", () => {
 
     await app.inject("/v1/anvils?locale=fr_fr");
     expect(upstream.hits(table), "the derived catalogue is cached").toBe(1);
+  });
+
+  const MAP_BIN = "/16.19/game/data/maps/shipping/map12/map12.bin.json";
+  const SHARD_BIN = "/16.19/game/unknown/507cdd64276919f5.bin.json";
+  const EN_TABLE = "/16.19/game/en_us/data/menu/en_us/lol.stringtable.json";
+
+  it("finds the shards in their own bin once the map bin has none (16.22)", async () => {
+    const { app } = await service({
+      answers: {
+        [MAP_BIN]: { json: { "{0001}": { __type: "MapContainer" } } },
+        [SHARD_BIN]: { text: fixture("507cdd64276919f5.anvils.16.22.json") },
+      },
+    });
+    const response = await app.inject("/v1/anvils?locale=en_us");
+    expect(response.statusCode).toBe(200);
+    expect(response.json().shards).toHaveLength(34);
+  });
+
+  it("refuses a catalogue with no shards, stores nothing and does not rebuild it on every request", async () => {
+    const { app, upstream, store } = await service({
+      answers: { [MAP_BIN]: { json: { "{0001}": { __type: "MapContainer" } } } },
+    });
+    const first = await app.inject("/v1/anvils?locale=en_us");
+    expect(first.statusCode).toBe(503);
+    expect(first.json().error).toMatch(/no stat anvil shards/);
+    expect(store.getDerived("", "anvil-catalogue", "16.19/en_us")).toBeNull();
+
+    expect((await app.inject("/v1/anvils?locale=en_us")).statusCode).toBe(503);
+    expect(upstream.hits(EN_TABLE), "the failure is remembered").toBe(1);
+  });
+
+  it("rebuilds an empty catalogue stored by an earlier build", async () => {
+    const { app, store } = await service();
+    const empty = { patch: "16.19", locale: "en_us", shards: [] };
+    store.putDerived("", "anvil-catalogue", "16.19/en_us", Buffer.from(JSON.stringify(empty)));
+    const response = await app.inject("/v1/anvils?locale=en_us");
+    expect(response.json().shards).toHaveLength(34);
   });
 
   it("refuses a locale CommunityDragon does not publish", async () => {

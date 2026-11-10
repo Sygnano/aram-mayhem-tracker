@@ -70,9 +70,14 @@ impl AramkitClient {
     }
 
     /// The stat anvil shards, named in `locale` (`en_us`, `fr_fr`, …). Once per patch.
+    ///
+    /// A catalogue with no shards is never right: every anvil offer would read as an unreadable
+    /// augment offer, which is what 16.22 did while the service could not find the shards. It is
+    /// neither stored nor served, and the stored copy answers instead.
     pub async fn anvils(&self, locale: &str) -> Result<Fetched<AnvilCatalogue>, ClientError> {
         let url = format!("{}/v1/anvils?locale={locale}", self.base);
-        self.get(&url, &format!("anvils-{locale}")).await
+        let usable = |c: &AnvilCatalogue| !c.shards.is_empty();
+        self.get(&url, &format!("anvils-{locale}"), usable, "the service has no stat anvil shards").await
     }
 
     /// How these champions deal their damage, one by one and together as a team. Asked about the
@@ -98,21 +103,32 @@ impl AramkitClient {
     }
 
     /// Fetches and caches, falling back to the stored copy when the service cannot be reached.
-    async fn get<T>(&self, url: &str, cache_key: &str) -> Result<Fetched<T>, ClientError>
+    ///
+    /// An answer `usable` turns down is treated like an outage: it is not stored, and the stored
+    /// copy is served if that one is usable. `unusable` says why, when nothing usable is left.
+    async fn get<T>(
+        &self,
+        url: &str,
+        cache_key: &str,
+        usable: impl Fn(&T) -> bool,
+        unusable: &str,
+    ) -> Result<Fetched<T>, ClientError>
     where
         T: serde::Serialize + serde::de::DeserializeOwned,
     {
-        match self.get_bytes(url).await {
-            Ok(bytes) => match serde_json::from_slice::<T>(&bytes) {
-                Ok(value) => {
+        let failure = match self.get_bytes(url).await {
+            Ok(bytes) => {
+                let value = serde_json::from_slice::<T>(&bytes)
+                    .map_err(|e| ClientError::Decode { url: url.into(), message: e.to_string() })?;
+                if usable(&value) {
                     if let Err(e) = self.cache.put(cache_key, &bytes).await {
                         // Not fatal: we have the answer, we just could not keep it.
                         log::warn!("could not cache {cache_key}: {e}");
                     }
-                    Ok(Fetched { value, freshness: Freshness::Live })
+                    return Ok(Fetched { value, freshness: Freshness::Live });
                 }
-                Err(e) => Err(ClientError::Decode { url: url.into(), message: e.to_string() }),
-            },
+                ClientError::Decode { url: url.into(), message: unusable.into() }
+            }
             Err(e) => {
                 // A 4xx is an answer, not an outage: serving a stale copy would hide a real problem
                 // such as an augment id we should not have sent. The exception is 429: the service
@@ -122,16 +138,21 @@ impl AramkitClient {
                         return Err(e);
                     }
                 }
-                match self.cache.get(cache_key).await? {
-                    Some(bytes) => {
-                        let value = serde_json::from_slice::<T>(&bytes)
-                            .map_err(|err| ClientError::Decode { url: url.into(), message: err.to_string() })?;
-                        log::warn!("serving a cached copy of {cache_key}: {e}");
-                        Ok(Fetched { value, freshness: Freshness::Stale })
-                    }
-                    None => Err(e),
-                }
+                e
             }
+        };
+        match self.cache.get(cache_key).await? {
+            Some(bytes) => {
+                let value = serde_json::from_slice::<T>(&bytes)
+                    .map_err(|err| ClientError::Decode { url: url.into(), message: err.to_string() })?;
+                // A copy stored before such answers were refused is no better than the live one.
+                if !usable(&value) {
+                    return Err(failure);
+                }
+                log::warn!("serving a cached copy of {cache_key}: {failure}");
+                Ok(Fetched { value, freshness: Freshness::Stale })
+            }
+            None => Err(failure),
         }
     }
 
@@ -199,7 +220,39 @@ mod tests {
     }
 
     const SHARDS: &str = r#"{"patch":"16.19","locale":"en_us","shards":[{"id":"ARAM_StatAnvil_AR"}]}"#;
-    const OLDER: &str = r#"{"patch":"16.18","locale":"en_us","shards":[]}"#;
+    const OLDER: &str = r#"{"patch":"16.18","locale":"en_us","shards":[{"id":"ARAM_StatAnvil_MR"}]}"#;
+    /// What the service answered on 16.22 before it found the shards' new bin.
+    const EMPTY: &str = r#"{"patch":"16.22","locale":"en_us","shards":[]}"#;
+
+    #[tokio::test]
+    async fn an_empty_catalogue_is_not_kept_and_the_stored_copy_answers() {
+        let dir = cache_dir("empty");
+        let client = AramkitClient::new(serve(200, EMPTY).await, &dir);
+
+        match client.anvils("en_us").await {
+            Err(ClientError::Decode { message, .. }) => assert!(message.contains("no stat anvil shards"), "{message}"),
+            other => panic!("expected the empty catalogue refused, got {other:?}"),
+        }
+        assert!(client.cache.get("anvils-en_us").await.unwrap().is_none(), "an empty catalogue is not stored");
+
+        client.cache.put("anvils-en_us", OLDER.as_bytes()).await.unwrap();
+        let fetched = client.anvils("en_us").await.unwrap();
+        assert_eq!(fetched.freshness, Freshness::Stale);
+        assert_eq!(fetched.value.patch, "16.18");
+        assert_eq!(client.cache.get("anvils-en_us").await.unwrap().unwrap(), OLDER.as_bytes(), "not overwritten");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The copy 16.22 left on disk: an outage must not bring it back.
+    #[tokio::test]
+    async fn a_stored_empty_catalogue_is_never_served() {
+        let dir = cache_dir("stored-empty");
+        let client = AramkitClient::new(serve(503, r#"{"error":"data not available yet"}"#).await, &dir);
+        client.cache.put("anvils-en_us", EMPTY.as_bytes()).await.unwrap();
+
+        assert!(matches!(client.anvils("en_us").await, Err(ClientError::Status { status: 503, .. })));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     #[tokio::test]
     async fn a_live_answer_is_served_and_kept() {

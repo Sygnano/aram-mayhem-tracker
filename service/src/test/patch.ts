@@ -5,11 +5,11 @@
 
 import { readFileSync } from "node:fs";
 import { expect } from "vitest";
-import { crawlFrom, fakeUpstream, testService } from "./helpers.ts";
+import { crawlFrom, type FakeAnswer, fakeUpstream, testService } from "./helpers.ts";
 
 export const DATA = "/data/16.19-test/stats/all";
 export const CDRAGON = "/16.19/plugins/rcp-be-lol-game-data/global/default/v1";
-const fixture = (name: string) =>
+export const fixture = (name: string) =>
   readFileSync(new URL(`../../fixtures/anvils/${name}`, import.meta.url), "utf8");
 
 export const row = (id: number, winRate: number, sampleCount: number, extra = {}) => ({
@@ -56,9 +56,14 @@ export const VERSIONS = {
 
 /**
  * A small but real-shaped patch: three ranked champions, one of them missing upstream. Crawled into
- * the service before it is handed over, unless `withVersion` is false.
+ * the service before it is handed over, unless `withVersion` is false. `answers` replaces or adds
+ * upstream answers, by path.
  */
-export async function service({ adminToken = null as string | null, withVersion = true } = {}) {
+export async function service({
+  adminToken = null as string | null,
+  withVersion = true,
+  answers = {} as Record<string, FakeAnswer>,
+} = {}) {
   const upstream = await fakeUpstream({
     "/data/versions.json": { json: VERSIONS },
     [`${DATA}/champion-rankings.json`]: {
@@ -142,6 +147,7 @@ export async function service({ adminToken = null as string | null, withVersion 
     "/16.19/game/fr_fr/data/menu/en_us/lol.stringtable.json": {
       text: fixture("stringtable.fr_fr.16.19.json"),
     },
+    ...answers,
   });
   const svc = await testService({ upstreamBase: upstream.base, adminToken });
   if (withVersion) {

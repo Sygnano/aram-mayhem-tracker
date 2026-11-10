@@ -2,8 +2,10 @@
  * The stat anvil catalogue.
  *
  * Mayhem's shards are not in `cherry-augments.json` or `items.json`. They are `AnvilData` objects in
- * the ARAM map's bin, `game/data/maps/shipping/map12/map12.bin.json`, each pointing at a spell whose
- * `DataValues` are the shard's fixed stats. Names are keys into the per-locale string table.
+ * a game bin, each pointing at a spell whose `DataValues` are the shard's fixed stats. Up to 16.21
+ * that was the ARAM map's bin, `game/data/maps/shipping/map12/map12.bin.json`; from 16.22 it is a bin
+ * of their own (`ANVIL_BINS` in `upstream/documents.ts`). Names are keys into the per-locale string
+ * table.
  *
  * Two shards in the bin are not offered in Mayhem (the wiki and the project owner agree): Two Random
  * Shards and Shardholder Value. They are excluded by id.
@@ -113,10 +115,10 @@ const isObject = (v: unknown): v is JsonObject =>
 /** Byte order on ASCII ids, as Rust's `String` ordering was. */
 const compareIds = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
-/** Pulls every Mayhem shard out of a parsed `map12.bin.json`. */
+/** Pulls every Mayhem shard out of one parsed bin. A bin with none gives an empty list. */
 export function shardsFromMap(doc: unknown): RawShard[] {
   if (!isObject(doc)) {
-    throw new Error("parsing map12.bin.json: not an object");
+    throw new Error("parsing the anvil bin: not an object");
   }
 
   const out: RawShard[] = [];
@@ -172,6 +174,23 @@ export function shardsFromMap(doc: unknown): RawShard[] {
     });
   }
   return out.sort((a, b) => compareIds(a.id, b.id));
+}
+
+/**
+ * Every shard in any of `docs`, the bins `ANVIL_BINS` lists. Riot has moved the shards between bins
+ * before (16.22), so each is read and the results joined; a shard found twice keeps its first
+ * reading. Empty when no bin has a shard, which the caller must treat as a failure.
+ */
+export function shardsFromBins(docs: readonly unknown[]): RawShard[] {
+  const byId = new Map<string, RawShard>();
+  for (const doc of docs) {
+    for (const shard of shardsFromMap(doc)) {
+      if (!byId.has(shard.id)) {
+        byId.set(shard.id, shard);
+      }
+    }
+  }
+  return [...byId.values()].sort((a, b) => compareIds(a.id, b.id));
 }
 
 /** Rounds half away from zero, as Rust's `f64::round` does. `Math.round` rounds half up. */

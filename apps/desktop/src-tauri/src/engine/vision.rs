@@ -802,6 +802,24 @@ mod tests {
         assert!(!snap.anvil.on_screen);
     }
 
+    /// 16.22: the service served no shards, every anvil offer read as augment cards nothing
+    /// matched, and the overlay said only "Reading augment cards…". It now says why.
+    #[test]
+    fn missing_shard_names_are_named_as_the_blocker() {
+        let engine = engine_in_mayhem_game(700.0);
+        // As `spawn` does on Windows; otherwise "screen reading unavailable" is the blocker.
+        engine.lock().vision.available = true;
+        let blocker = |engine: &Engine| engine.lock().snapshot().augments.ocr_blocker;
+        assert!(blocker(&engine).is_some_and(|b| b.contains("stat anvil")), "{:?}", blocker(&engine));
+
+        let tuning = engine.lock().tuning.matcher;
+        engine.lock().anvils.matcher = Some(Arc::new(ShardMatcher::new(tuning, &[])));
+        assert!(blocker(&engine).is_some_and(|b| b.contains("stat anvil")), "an empty matcher is no better");
+
+        with_anvils(&engine, 99, true);
+        assert_eq!(blocker(&engine), None);
+    }
+
     #[test]
     fn no_mayhem_game_is_a_no_op() {
         let engine = engine_in_mayhem_game(400.0);

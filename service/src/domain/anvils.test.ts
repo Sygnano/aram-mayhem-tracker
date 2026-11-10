@@ -5,6 +5,7 @@ import {
   type AnvilCatalogue,
   catalogue,
   type Shard,
+  shardsFromBins,
   shardsFromMap,
   stringsFromTable,
   type Tier,
@@ -13,6 +14,8 @@ import {
 const fixture = (name: string) =>
   readFileSync(new URL(`../../fixtures/anvils/${name}`, import.meta.url));
 const MAP = fixture("map12.anvils.16.19.json");
+/** The bin the shards moved to on 16.22, published by CommunityDragon under its path hash. */
+const BIN_16_22 = fixture("507cdd64276919f5.anvils.16.22.json");
 const EN = fixture("stringtable.en_us.16.19.json");
 const FR = fixture("stringtable.fr_fr.16.19.json");
 const BASE = "https://raw.communitydragon.org";
@@ -113,13 +116,43 @@ describe("the anvil catalogue", () => {
   });
 
   it("parses the same on the worker thread as on the main one", async () => {
-    const { raw, names } = await parseAnvilDocuments(MAP, FR);
+    const { raw, names } = await parseAnvilDocuments([MAP], FR);
     expect(catalogue("16.19", "fr_fr", BASE, raw, names)).toEqual(build(FR, "fr_fr"));
   });
 
   it("reports a worker that fails to parse as an error", async () => {
-    await expect(parseAnvilDocuments(Buffer.from("{ nope"), FR)).rejects.toThrow(
+    await expect(parseAnvilDocuments([Buffer.from("{ nope")], FR)).rejects.toThrow(
       /parsing the anvil documents/,
     );
+  });
+});
+
+describe("the bins the shards live in", () => {
+  const parsed = (b: Buffer) => JSON.parse(b.toString("utf8")) as unknown;
+  const ids = (raw: { id: string; tiers: Tier[] }[]) => raw.map((r) => `${r.id}:${r.tiers.join()}`);
+
+  it("finds the same shards in the 16.22 bin as in the 16.19 map", () => {
+    expect(ids(shardsFromMap(parsed(BIN_16_22)))).toEqual(ids(shardsFromMap(parsed(MAP))));
+  });
+
+  it("reads past a map bin that no longer has them", () => {
+    // 16.22's map12.bin.json: still there, with no AnvilData left in it.
+    const emptied = { "{0001}": { __type: "MapContainer" } };
+    expect(shardsFromBins([emptied, parsed(BIN_16_22)])).toEqual(shardsFromMap(parsed(BIN_16_22)));
+  });
+
+  it("keeps one reading of a shard found in two bins", () => {
+    const raw = shardsFromBins([parsed(MAP), parsed(BIN_16_22)]);
+    expect(raw).toHaveLength(34);
+    expect(raw).toEqual(shardsFromMap(parsed(MAP)));
+  });
+
+  it("is empty when no bin has a shard", () => {
+    expect(shardsFromBins([{}, { "{0001}": { __type: "MapContainer" } }])).toEqual([]);
+  });
+
+  it("joins them on the worker thread too", async () => {
+    const { raw } = await parseAnvilDocuments([Buffer.from("{}"), BIN_16_22], EN);
+    expect(raw).toHaveLength(34);
   });
 });

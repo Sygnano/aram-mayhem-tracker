@@ -23,6 +23,20 @@ export const CHERRY_AUGMENTS = "cherry-augments";
 export const AUGMENT_LISTS = "augment-lists";
 export const ANVIL_MAP = "map12-bin";
 
+/**
+ * Every bin the stat anvil shards have been found in, by `kind` and path under the patch.
+ *
+ * Up to 16.21 they were in the ARAM map bin. On 16.22 Riot moved all 34 into a bin of their own,
+ * whose name CommunityDragon's hash list does not know yet, so it is published under its path hash
+ * in `game/unknown/`. The hash is of the real path, so it holds from patch to patch; once
+ * CommunityDragon names the file it moves and this entry 404s, and that is the moment to add the
+ * named path here. Checked on 16.21 and 16.22.
+ */
+export const ANVIL_BINS: readonly { kind: string; path: string }[] = [
+  { kind: ANVIL_MAP, path: "game/data/maps/shipping/map12/map12.bin.json" },
+  { kind: "anvil-bin-507cdd64276919f5", path: "game/unknown/507cdd64276919f5.bin.json" },
+];
+
 /** Where an aramkit document lives, under aramkit's base URL. */
 export function aramkitPath(dataPath: string, kind: string, key: string): string {
   return kind === CHAMPION_DETAILS
@@ -153,14 +167,27 @@ export class Documents {
   }
 
   /**
-   * The ARAM map bin, which holds Mayhem's stat anvil shards. About 6.8 MB raw and well under
-   * 1 MB gzipped, so it is kept like any other upstream document.
+   * Every bin in `ANVIL_BINS` this patch has, in that order. A bin missing upstream is left out
+   * rather than failing the lot: which of them holds the shards changes between patches. The
+   * ARAM map bin is about 11 MB raw and well under 1 MB gzipped, so each is kept like any other
+   * upstream document.
    */
-  anvilMap(patch: string): Promise<Buffer> {
-    return this.ensure(
-      cdragonKey(ANVIL_MAP, patch),
-      `${this.cdragonBase}/${patch}/game/data/maps/shipping/map12/map12.bin.json`,
+  async anvilBins(patch: string): Promise<Buffer[]> {
+    const fetched = await Promise.allSettled(
+      ANVIL_BINS.map((bin) =>
+        this.ensure(cdragonKey(bin.kind, patch), `${this.cdragonBase}/${patch}/${bin.path}`),
+      ),
     );
+    const found: Buffer[] = [];
+    for (const result of fetched) {
+      if (result.status === "fulfilled") {
+        found.push(result.value);
+      } else if (!(result.reason instanceof UpstreamStatusError && result.reason.status === 404)) {
+        // Anything but "not in this patch" is a real failure and must not pass for an empty bin.
+        throw result.reason;
+      }
+    }
+    return found;
   }
 
   /**

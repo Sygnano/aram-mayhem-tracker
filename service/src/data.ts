@@ -21,6 +21,7 @@ import {
 } from "./domain/augments.ts";
 import { type ArchetypeBuild, archetypes } from "./domain/builds.ts";
 import { type DamageProfile, damageProfile } from "./domain/damage.ts";
+import { UnavailableError } from "./errors.ts";
 import type { Documents } from "./upstream/documents.ts";
 import {
   readAugmentLists,
@@ -39,8 +40,10 @@ const CHAMPION_TABLE = "champion-table";
 const CHAMPION_DAMAGE = "champion-damage";
 const ANVIL_CATALOGUE = "anvil-catalogue";
 
-/** The anvil pool sizes on 16.19: silver, gold, prismatic. */
+/** The anvil pool sizes on 16.19, unchanged on 16.22: silver, gold, prismatic. */
 const EXPECTED_ANVIL_POOLS = [13, 13, 8];
+/** How long a failed anvil catalogue build is answered from memory before it is tried again. */
+const ANVIL_FAILURE_BACKOFF_MS = 10 * 60 * 1000;
 
 export interface DataOptions {
   store: Store;
@@ -57,6 +60,11 @@ export class Data {
    * without this every request arriving before the first build finished would fetch its own copy.
    */
   readonly #anvilBuilds = new Map<string, Promise<AnvilCatalogue>>();
+  /**
+   * The last failed anvil build, by `patch/locale`. Each build fetches the ~31 MB string table, so a
+   * failure is answered from here for a while rather than rebuilt on every request.
+   */
+  readonly #anvilFailures = new Map<string, { at: number; error: unknown }>();
 
   constructor({ store, documents, log }: DataOptions) {
     this.#store = store;
@@ -137,24 +145,54 @@ export class Data {
    */
   anvilCatalogue(patch: string, locale: string): Promise<AnvilCatalogue> {
     const key = `${patch}/${locale}`;
+    const failed = this.#anvilFailures.get(key);
+    if (failed !== undefined && Date.now() - failed.at < ANVIL_FAILURE_BACKOFF_MS) {
+      return Promise.reject(failed.error);
+    }
     // The cache check is inside the shared promise too: the second caller in a burst waits for the
     // first one's result instead of starting its own fetch.
     let pending = this.#anvilBuilds.get(key);
     if (pending === undefined) {
-      pending = this.#derived("", ANVIL_CATALOGUE, key, () =>
-        this.#buildAnvilCatalogue(patch, locale),
-      ).finally(() => this.#anvilBuilds.delete(key));
+      pending = this.#derived(
+        "",
+        ANVIL_CATALOGUE,
+        key,
+        () => this.#buildAnvilCatalogue(patch, locale),
+        // An empty catalogue stored before empty ones were refused (16.22) is rebuilt, not served.
+        (stored) => stored.shards.length > 0,
+      )
+        .then(
+          (built) => {
+            this.#anvilFailures.delete(key);
+            return built;
+          },
+          (error: unknown) => {
+            this.#anvilFailures.set(key, { at: Date.now(), error });
+            throw error;
+          },
+        )
+        .finally(() => this.#anvilBuilds.delete(key));
       this.#anvilBuilds.set(key, pending);
     }
     return pending;
   }
 
   async #buildAnvilCatalogue(patch: string, locale: string): Promise<AnvilCatalogue> {
-    const [map, table] = await Promise.all([
-      this.#documents.anvilMap(patch),
+    const [bins, table] = await Promise.all([
+      this.#documents.anvilBins(patch),
       this.#documents.stringTable(patch, locale),
     ]);
-    const { raw, names } = await parseAnvilDocuments(map, table);
+    const { raw, names } = await parseAnvilDocuments(bins, table);
+    if (raw.length === 0) {
+      // Never an answer: an empty catalogue made every anvil offer read as an unreadable augment
+      // offer in the app (16.22). Refusing it keeps it out of the cache, and the app keeps the
+      // catalogue it already has.
+      this.#log.error(
+        { patch, bins: bins.length },
+        "no stat anvil shard in any known bin; the shards have moved again (see ANVIL_BINS)",
+      );
+      throw new UnavailableError(`no stat anvil shards found for ${patch}`);
+    }
     const built = anvilCatalogue(patch, locale, this.#documents.cdragonBase, raw, names);
 
     const counts = (["silver", "gold", "prismatic"] as const).map(
@@ -177,17 +215,25 @@ export class Data {
     return readChampionDetails(parseJson(raw, `champion-details/${championId}.json`));
   }
 
-  /** Reads a derived payload, building and storing it on a miss. */
+  /**
+   * Reads a derived payload, building and storing it on a miss. A stored payload `accept` turns
+   * down counts as a miss, so a bad answer written by an earlier build is replaced.
+   */
   async #derived<T>(
     dataPath: string,
     kind: string,
     key: string,
     build: () => Promise<T>,
+    accept: (stored: T) => boolean = () => true,
   ): Promise<T> {
     const body = this.#store.getDerived(dataPath, kind, key);
     if (body !== null) {
       try {
-        return JSON.parse(body.toString("utf8")) as T;
+        const stored = JSON.parse(body.toString("utf8")) as T;
+        if (accept(stored)) {
+          return stored;
+        }
+        this.#log.warn({ kind, key }, "refused derived payload, rebuilding");
       } catch (error) {
         // A row that no longer parses means it was written badly. Rebuild rather than fail, and say so.
         this.#log.warn({ kind, key, err: error }, "stale derived payload, rebuilding");

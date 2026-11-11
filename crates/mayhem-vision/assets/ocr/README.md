@@ -14,3 +14,8 @@
 
 Only recognition is needed: the app already knows where each title is (the card layout), so no
 text-detection model is bundled. It runs in pure Rust through `tract`, with no native runtime.
+
+`pt-br-names.json` is a test-only subset of the official CommunityDragon 16.21 Portuguese augment
+names, retaining the original ids and rarities. See [LOCALIZATION.md](../../../../LOCALIZATION.md)
+for its source and validation scope. It does not replace the runtime CommunityDragon vocabulary
+or establish image-level OCR accuracy in Portuguese.

@@ -1,3 +1,4 @@
+import { detail } from "./i18n";
 const RARITY: Record<string, { label: string; color: string }> = {
   silver: { label: "Silver", color: "#b8c4d0" },
   gold: { label: "Gold", color: "#e2b94a" },
@@ -10,5 +11,6 @@ const RARITY: Record<string, { label: string; color: string }> = {
  * screen) or the service's (`gold`, on a pool), so no caller has to rebuild one from the other.
  */
 export function rarity(r: string) {
-  return RARITY[r.replace(/^k(?=[A-Z])/, "").toLowerCase()] ?? { label: r || "?", color: "#9aa4b2" };
+  const result = RARITY[r.replace(/^k(?=[A-Z])/, "").toLowerCase()];
+  return result ? { ...result, label: detail(result.label) } : { label: r || "?", color: "#9aa4b2" };
 }

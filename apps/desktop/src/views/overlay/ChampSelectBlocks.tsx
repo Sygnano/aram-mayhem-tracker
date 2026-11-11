@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { useState } from "react";
 
@@ -99,7 +100,7 @@ function StatBlock({ slot, simple }: { slot: ChampSelectSlot; simple: boolean })
       <>
         {badge}
         <span className="ov-cs-win">--</span>
-        <span className="ov-cs-place ov-cs-of">no data</span>
+        <span className="ov-cs-place ov-cs-of">{t("no data")}</span>
       </>
     );
   } else {
@@ -135,7 +136,7 @@ function StatBlock({ slot, simple }: { slot: ChampSelectSlot; simple: boolean })
         </span>
         {badge}
         <span className="ov-cs-pick">
-          Pick Rate :<br />
+          {t("Pick Rate :")}<br />
           {Math.round(pickRate)}%
         </span>
       </>
@@ -158,7 +159,7 @@ function StatBlock({ slot, simple }: { slot: ChampSelectSlot; simple: boolean })
   // Only the bench is a button. Everything else is a plain box, so it cannot swallow a click meant
   // for the client underneath.
   return slot.swappable ? (
-    <button className={className} style={style} onClick={swap} disabled={pending} title="Swap to this champion">
+    <button className={className} style={style} onClick={swap} disabled={pending} title={t("Swap to this champion")}>
       {body}
     </button>
   ) : (

@@ -1,3 +1,5 @@
+import { t } from "./i18n";
+import { useLanguage } from "./language";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -18,17 +20,24 @@ window.addEventListener("unhandledrejection", (e) =>
   reportError(`unhandled rejection: ${String(e.reason)}`, e.reason instanceof Error ? e.reason.stack : null),
 );
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    {/* The overlay draws nothing while it is down: it sits over the game. The companion says so. */}
+function App() {
+  useLanguage();
+  // The overlay draws nothing while it is down: it sits over the game. The companion says so.
+  return (
     <ErrorBoundary
       fallback={
         isOverlay ? null : (
-          <div className="page error">Something went wrong drawing this window. Trying again…</div>
+          <div className="page error">{t("Something went wrong drawing this window. Trying again…")}</div>
         )
       }
     >
       <View />
     </ErrorBoundary>
+  );
+}
+
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <App />
   </StrictMode>,
 );

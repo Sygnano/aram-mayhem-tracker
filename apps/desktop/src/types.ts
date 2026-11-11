@@ -339,6 +339,7 @@ export interface AnvilRead {
 /** The settings the companion window edits: all of `config.json`, and nothing else is in it
  *  (`src-tauri/src/config.rs` `Settings`). */
 export interface AppConfig {
+  language: "auto" | "en" | "pt-BR";
   /** Typed in, or remembered from the first time the client was found. */
   leagueDir: string | null;
   /** Write item sets on champion lock-in. Deletes every existing item page. */

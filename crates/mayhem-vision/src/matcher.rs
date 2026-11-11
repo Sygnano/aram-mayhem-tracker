@@ -337,6 +337,42 @@ mod tests {
         assert_eq!(m.match_text("Quete de hate").unwrap().id, 8);
     }
 
+    /// Official pt_BR strings from CommunityDragon 16.21. This validates matching of text,
+    /// not image recognition: real Portuguese screenshots still need an in-game check.
+    #[test]
+    fn brazilian_portuguese_official_names_tolerate_accents_spacing_and_punctuation() {
+        #[derive(Deserialize)]
+        struct OfficialName {
+            id: i64,
+            #[serde(rename = "nameTRA")]
+            name: String,
+            rarity: String,
+        }
+        let official: Vec<OfficialName> = serde_json::from_str(include_str!("../assets/ocr/pt-br-names.json")).unwrap();
+        let vocabulary: Vec<_> =
+            official.iter().map(|n| AugmentName { id: n.id, name: n.name.clone(), rarity: n.rarity.clone() }).collect();
+        let matcher = AugmentMatcher::new(MatcherConfig::default(), &vocabulary);
+        for name in &official {
+            assert_eq!(matcher.match_text(&name.name).unwrap().id, name.id);
+            let noisy: String = name
+                .name
+                .nfkd()
+                .filter(|c| !unicode_normalization::char::is_combining_mark(*c))
+                .filter(|c| c.is_alphanumeric())
+                .collect();
+            assert_eq!(matcher.match_text(&noisy).unwrap().id, name.id, "{}", name.name);
+        }
+        assert_eq!(normalize("AÇÃO, coração — bênção."), normalize("acao coracao bencao"));
+        assert_eq!(normalize("Você\u{a0}é"), normalize("Voce e"));
+        assert!(matcher.match_text("zzzzzzzz").is_none());
+        assert_eq!(
+            matcher
+                .match_offer(&["Tudo por Voce".into(), "VoltandoaoBasico".into(), "Transmutar Prismatico".into(),])
+                .map(|m| m.map(|m| m.id)),
+            [Some(1141), Some(1004), Some(1238)]
+        );
+    }
+
     #[test]
     fn extra_text_around_long_names_is_tolerated() {
         let m = vocab();

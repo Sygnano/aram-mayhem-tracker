@@ -322,3 +322,11 @@ button.ov-cs-block:disabled { cursor: default; opacity: 0.6; }
 .updates strong { color: var(--gold); }
 .radios { display: flex; gap: 16px; }
 .radios label { display: flex; gap: 8px; align-items: center; }
+
+/* Long translated labels wrap within the existing companion layout. */
+.companion dl { grid-template-columns: 120px minmax(0, 1fr); }
+.companion dt, .companion .check span { overflow-wrap: anywhere; }
+.companion .field select { width: 100%; min-width: 0; }
+.companion table { table-layout: fixed; overflow-wrap: anywhere; }
+.companion .radios { flex-wrap: wrap; row-gap: 8px; }
+:lang(pt-BR) .ov-cs-pick { max-width: 7vh; white-space: normal; }

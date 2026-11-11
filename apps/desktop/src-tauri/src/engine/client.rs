@@ -296,13 +296,15 @@ pub async fn static_retry_loop(engine: Arc<Engine>) {
 }
 
 async fn retry_champion_index(engine: &Arc<Engine>, patch: &str) {
-    let result = CDragon::new(engine.cache_dir.clone()).champions(patch).await;
+    let locale = engine.lock().static_data.as_ref().map(|d| d.locale.clone()).unwrap_or_else(|| "default".into());
+    let result = CDragon::new(engine.cache_dir.clone()).champions_localized(patch, &locale).await;
     let mut st = engine.lock();
     match result {
         Ok((ids, names)) => {
             // The static data may have been replaced while this ran (a locale change reloads it).
             // Only fill in the index it was fetched for, and only if it is still missing.
-            let Some(current) = st.static_data.as_ref().filter(|d| d.patch == patch && d.champion_ids.is_empty())
+            let Some(current) =
+                st.static_data.as_ref().filter(|d| d.patch == patch && d.locale == locale && d.champion_ids.is_empty())
             else {
                 return;
             };

@@ -24,11 +24,10 @@ pub fn setup(app: &AppHandle, engine: &Arc<Engine>) -> tauri::Result<()> {
         (st.settings.keep_in_tray, st.settings.start_minimized)
     };
 
-    let open = MenuItem::with_id(app, "open", "Open", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+    let menu = localized_menu(app, engine.lock().settings.language)?;
     let mut tray = TrayIconBuilder::with_id(TRAY_ID)
         .tooltip("ARAM Mayhem Tracker")
-        .menu(&Menu::with_items(app, &[&open, &quit])?)
+        .menu(&menu)
         // A left click opens the window; the menu is the right click's.
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
@@ -60,6 +59,20 @@ pub fn setup(app: &AppHandle, engine: &Arc<Engine>) -> tauri::Result<()> {
             w.minimize()?;
             w.show()?;
         }
+    }
+    Ok(())
+}
+
+fn localized_menu(app: &AppHandle, language: crate::config::Language) -> tauri::Result<Menu<tauri::Wry>> {
+    let pt = crate::i18n::is_portuguese(language);
+    let open = MenuItem::with_id(app, "open", crate::i18n::text("Open", pt), true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", crate::i18n::text("Quit", pt), true, None::<&str>)?;
+    Menu::with_items(app, &[&open, &quit])
+}
+
+pub fn refresh_language(app: &AppHandle, language: crate::config::Language) -> tauri::Result<()> {
+    if let Some(tray) = app.tray_by_id(TRAY_ID) {
+        tray.set_menu(Some(localized_menu(app, language)?))?;
     }
     Ok(())
 }

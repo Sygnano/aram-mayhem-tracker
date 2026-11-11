@@ -1,3 +1,4 @@
+import { decimal, detail, t } from "../../i18n";
 import { rarity } from "../../format";
 import type { AnvilTier, CardAnchor, RankedAugment, Snapshot } from "../../types";
 import { gradeColour, TierBadge } from "./TierBadge";
@@ -9,12 +10,12 @@ import { gradeColour, TierBadge } from "./TierBadge";
 /** Signed, with a percent sign: the sign is the whole point. */
 function delta(pp: number | null): string {
   if (pp === null) return "—";
-  return `${pp >= 0 ? "+" : ""}${pp.toFixed(1)}%`;
+  return `${pp >= 0 ? "+" : ""}${decimal(pp, 1)}%`;
 }
 
 /** The same, with the sign held off the number, which reads better in the per-level column. */
 function spacedDelta(pp: number): string {
-  return `${pp >= 0 ? "+" : "-"} ${Math.abs(pp).toFixed(1)}%`;
+  return `${pp >= 0 ? "+" : "-"} ${decimal(Math.abs(pp), 1)}%`;
 }
 
 /**
@@ -33,12 +34,12 @@ const STAGES = [
 ] as const;
 
 function percent(rate: number | null): string {
-  return rate === null ? "—" : `${(rate * 100).toFixed(1)}%`;
+  return rate === null ? "—" : `${decimal(rate * 100, 1)}%`;
 }
 
 /** 320503 → "320k", so a sample count fits on one line. */
 function count(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000_000) return `${decimal(n / 1_000_000, 1)}M`;
   if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
   return String(n);
 }
@@ -51,9 +52,9 @@ function count(n: number): string {
  * champion at all and its delta is measured against a different baseline.
  */
 function caveat(a: RankedAugment): string | null {
-  if (a.block === "none") return "no data";
-  if (a.block === "global") return "all champions";
-  if (a.lowSample) return `${count(a.sampleCount)} games`;
+  if (a.block === "none") return t("no data");
+  if (a.block === "global") return t("all champions");
+  if (a.lowSample) return t("{count} games", { count: count(a.sampleCount) });
   return null;
 }
 
@@ -72,8 +73,8 @@ export function CardPanels({ s }: { s: Snapshot }) {
     if (s.vision.cardsOnScreen) {
       return (
         <div className="ov-due">
-          Reading augment cards…
-          {s.augments.ocrBlocker && <span className="ov-due-why"> — {s.augments.ocrBlocker}</span>}
+          {t("Reading augment cards…")}
+          {s.augments.ocrBlocker && <span className="ov-due-why"> — {detail(s.augments.ocrBlocker)}</span>}
         </div>
       );
     }
@@ -113,7 +114,7 @@ export function CardPanels({ s }: { s: Snapshot }) {
             style={panelStyle(anchor, card ? rarity(card.rarity).color : "#6a7382", simple)}
           >
             {card == null ? (
-              <div className="ov-panel-empty">not read</div>
+              <div className="ov-panel-empty">{t("not read")}</div>
             ) : info ? (
               <CardStats info={info} stage={offer.stage} simple={simple} />
             ) : (
@@ -147,8 +148,8 @@ export function AnvilLabels({ s }: { s: Snapshot }) {
   const labelled = anvil.cards.some((c) => c?.rank != null);
 
   if (!labelled || !anchors) {
-    const why = anvil.status ?? (anvil.group ? "no ranked shard in this offer" : null);
-    return why ? <div className="ov-due">Stat anvil — <span className="ov-due-why">{why}</span></div> : null;
+    const why = anvil.status ?? (anvil.group ? t("no ranked shard in this offer") : null);
+    return why ? <div className="ov-due">{t("Stat anvil —")} <span className="ov-due-why">{detail(why)}</span></div> : null;
   }
   const colour = anvil.tier ? ANVIL_TIER_COLOUR[anvil.tier] : "#6a7382";
 
@@ -177,7 +178,7 @@ export function AnvilLabels({ s }: { s: Snapshot }) {
 /** A small anvil silhouette, so the label is never mistaken for an aramkit tier badge. */
 function AnvilMark({ color }: { color: string }) {
   return (
-    <svg className="ov-anvil-mark" viewBox="0 0 24 16" aria-label="Stat anvil rank">
+    <svg className="ov-anvil-mark" viewBox="0 0 24 16" aria-label={t("Stat anvil rank")}>
       <path d="M2 2 H17 C19 2 22 3 23 5 C20 5 18 6 17 7 V8 C17 9 16 10 14 10 V12 H17 V15 H5 V12 H8 V10 C6 10 5 9 5 8 V6 C3 6 2 4 2 2 Z" fill={color} />
     </svg>
   );
@@ -202,7 +203,7 @@ function CardStats({ info, stage, simple }: { info: RankedAugment; stage: number
   const sign = info.deltaPp === null ? "" : info.deltaPp >= 0 ? " ov-delta-up" : " ov-delta-down";
 
   if (info.block === "none") {
-    return <div className="ov-panel-empty">no data</div>;
+    return <div className="ov-panel-empty">{t("no data")}</div>;
   }
   if (simple) return <TierBadge tier={info.grade} />;
   return (
@@ -225,9 +226,9 @@ function CardStats({ info, stage, simple }: { info: RankedAugment; stage: number
 
       {/* A two-column grid, so both values start at the same x rather than trailing their labels. */}
       <div className="ov-col ov-rates">
-        <span className="ov-rate-label">WR</span>
+        <span className="ov-rate-label">{t("WR")}</span>
         <span className="ov-rate-value">{percent(info.winRate)}</span>
-        <span className="ov-rate-label">PR</span>
+        <span className="ov-rate-label">{t("PR")}</span>
         <span className="ov-rate-value">{percent(info.pickRate)}</span>
       </div>
 
@@ -261,8 +262,8 @@ function CardStats({ info, stage, simple }: { info: RankedAugment; stage: number
 }
 
 function Pending({ s }: { s: Snapshot }) {
-  if (s.stats.championUnknown) return <div className="ov-panel-empty">champion unknown</div>;
-  if (s.stats.error) return <div className="ov-panel-empty">stats unavailable</div>;
+  if (s.stats.championUnknown) return <div className="ov-panel-empty">{t("champion unknown")}</div>;
+  if (s.stats.error) return <div className="ov-panel-empty">{t("stats unavailable")}</div>;
   return <div className="ov-panel-empty">…</div>;
 }
 
@@ -350,7 +351,7 @@ export function RarityList({ s }: { s: Snapshot }) {
     <div className="ov-pool" style={{ borderColor: rarity(pool.rarity).color }}>
       {/* No heading: the rarity is obvious from the cards, and the rows speak for themselves. The
           one thing worth saying is that the numbers are not fresh. */}
-      {s.stats.freshness === "stale" && <div className="ov-pool-stale">offline copy</div>}
+      {s.stats.freshness === "stale" && <div className="ov-pool-stale">{t("offline copy")}</div>}
       <ol className="ov-pool-list">
         {rows.map((r) => {
           const classes = ["ov-pool-row"];

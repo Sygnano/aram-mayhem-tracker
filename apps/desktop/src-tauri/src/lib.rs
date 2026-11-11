@@ -3,6 +3,7 @@
 mod commands;
 mod config;
 mod engine;
+mod i18n;
 mod logging;
 mod overlay;
 mod portable;

@@ -1,3 +1,4 @@
+import { currentLocale, detail, t } from "../i18n";
 import { useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useSnapshot } from "../useSnapshot";
@@ -9,7 +10,7 @@ import { Settings } from "./Settings";
 export function Companion() {
   const s = useSnapshot();
   const [settingsOpen, setSettingsOpen] = useState(false);
-  if (!s) return <div className="page">Starting…</div>;
+  if (!s) return <div className="page">{t("Starting…")}</div>;
   return settingsOpen ? <Settings s={s} onBack={() => setSettingsOpen(false)} /> : <Home s={s} onSettings={() => setSettingsOpen(true)} />;
 }
 
@@ -34,105 +35,104 @@ function Home({ s, onSettings }: { s: Snapshot; onSettings: () => void }) {
     <div className="page companion">
       <header>
         <h1>ARAM Mayhem Tracker</h1>
-        <button className="icon-btn" onClick={onSettings} title="Settings" aria-label="Settings">
+        <button className="icon-btn" onClick={onSettings} title={t("Settings")} aria-label={t("Settings")}>
           <Gear />
         </button>
       </header>
 
       <section>
-        <h2>Client</h2>
+        <h2>{t("Client")}</h2>
         <dl>
-          <dt>Status</dt>
+          <dt>{t("Status")}</dt>
           <dd>
             <span className={`status-dot status-${ready.level}`} />
             {ready.text}
           </dd>
-          <dt>Patch</dt>
+          <dt>{t("Patch")}</dt>
           <dd>{s.staticData.patch ?? "—"}</dd>
           <dt>League of Legends</dt>
           <dd>
             {s.client.installDir ? (
               <>
-                Detected
+                {t("Detected")}
                 <div className="path">{s.client.installDir}</div>
               </>
             ) : (
-              "Not detected"
+              t("Not detected")
             )}
           </dd>
         </dl>
       </section>
 
-      {refused && <p className="error">That setting was not saved: {refused}</p>}
+      {refused && <p className="error">{t("That setting was not saved:")} {detail(refused)}</p>}
 
       {cfg && (
         <>
           <section>
-            <h2>Overlay options</h2>
+            <h2>{t("Overlay options")}</h2>
             <div className="checks">
-              <Check label="Enabled" checked={cfg.overlayEnabled} onChange={(on) => update({ overlayEnabled: on })} />
+              <Check label={t("Enabled")} checked={cfg.overlayEnabled} onChange={(on) => update({ overlayEnabled: on })} />
               {/* Turning simple mode on takes the list down with it. The list keeps its own box, so
                   ticking that again brings it back while simple mode stays on. */}
               <Check
-                label="Simple mode"
+                label={t("Simple mode")}
                 checked={cfg.simpleMode}
                 onChange={(on) => update(on ? { simpleMode: true, showAugmentList: false } : { simpleMode: false })}
               >
-                Tier badges only, no numbers.
+                {t("Tier badges only, no numbers.")}
               </Check>
-              <Check label="Show augment list" checked={cfg.showAugmentList} onChange={(on) => update({ showAugmentList: on })} />
-              <Check label="Manage item sets" checked={cfg.manageItemSets} onChange={(on) => update({ manageItemSets: on })}>
-                Replaces <strong>every item page on your account</strong> each time you lock in a champion.
+              <Check label={t("Show augment list")} checked={cfg.showAugmentList} onChange={(on) => update({ showAugmentList: on })} />
+              <Check label={t("Manage item sets")} checked={cfg.manageItemSets} onChange={(on) => update({ manageItemSets: on })}>
+                {t("Replaces")} <strong>{t("every item page on your account")}</strong> {t("each time you lock in a champion.")}
               </Check>
             </div>
           </section>
 
           <section>
-            <h2>Game</h2>
+            <h2>{t("Game")}</h2>
             <div className="checks">
-              <Check label="Auto accept" checked={cfg.autoAccept} onChange={(on) => update({ autoAccept: on })}>
-                Accepts one second after a game is found.
+              <Check label={t("Auto accept")} checked={cfg.autoAccept} onChange={(on) => update({ autoAccept: on })}>
+                {t("Accepts one second after a game is found.")}
               </Check>
               <ChatStatusRadios connected={s.client.connected} />
             </div>
           </section>
 
           <section>
-            <h2>Parameters</h2>
+            <h2>{t("Parameters")}</h2>
             <div className="checks">
-              <Check label="Keep in tray" checked={cfg.keepInTray} onChange={(on) => update({ keepInTray: on })} />
-              <Check label="Start with Windows minimized" checked={cfg.startMinimized} onChange={(on) => update({ startMinimized: on })}>
-                {portable && "Starts this copy from where it is now. Untick it before moving the folder."}
+              <Check label={t("Keep in tray")} checked={cfg.keepInTray} onChange={(on) => update({ keepInTray: on })} />
+              <Check label={t("Start with Windows minimized")} checked={cfg.startMinimized} onChange={(on) => update({ startMinimized: on })}>
+                {portable && t("Starts this copy from where it is now. Untick it before moving the folder.")}
               </Check>
             </div>
             {mode?.portable &&
               (mode.dataDir ? (
                 <p className="muted">
-                  Portable copy: settings and logs are kept in{" "}
+                  {t("Portable copy: settings and logs are kept in")}{" "}
                   <span className="path">{mode.dataDir}</span>
                 </p>
               ) : (
                 <p className="error">
-                  Portable copy, but its folder cannot be written: settings are kept in AppData instead. Extract the
-                  zip to a folder you own.
+                  {t("Portable copy, but its folder cannot be written: settings are kept in AppData instead. Extract the zip to a folder you own.")}
                 </p>
               ))}
           </section>
 
           <section>
-            <h2>Updates</h2>
+            <h2>{t("Updates")}</h2>
             <div className="checks">
               <Check
-                label="Check updates on startup"
+                label={t("Check updates on startup")}
                 checked={cfg.checkUpdatesOnStartup}
                 onChange={(on) => update({ checkUpdatesOnStartup: on })}
               />
               <Check
-                label="Update statistics automatically"
+                label={t("Update statistics automatically")}
                 checked={cfg.autoUpdateStatistics}
                 onChange={(on) => update({ autoUpdateStatistics: on })}
               >
-                Looks for newer ones every 24 hours. They are always checked when the app starts.
+                {t("Looks for newer ones every 24 hours. They are always checked when the app starts.")}
               </Check>
               <UpdatePanel s={s} portable={portable} />
             </div>
@@ -146,18 +146,18 @@ function Home({ s, onSettings }: { s: Snapshot; onSettings: () => void }) {
 /** Where the last statistics update stands. Silent before the first check of this run. */
 function StatisticsLine({ s }: { s: Snapshot }) {
   const d = s.dataset;
-  if (d.downloading) return <p className="muted">Downloading… {progress(d.downloading)}</p>;
+  if (d.downloading) return <p className="muted">{t("Downloading…")} {progress(d.downloading)}</p>;
   if (d.error) {
     // With statistics on disk a failure is a note, not a fault: the app carries on with them.
-    return <p className={d.loaded ? "muted" : "error"}>Update failed: {d.error}</p>;
+    return <p className={d.loaded ? "muted" : "error"}>{t("Update failed:")} {detail(d.error)}</p>;
   }
-  if (d.checkedAt !== null) return <p className="muted">Data up to date, checked {when(d.checkedAt)}.</p>;
+  if (d.checkedAt !== null) return <p className="muted">{t("Data up to date, checked")} {when(d.checkedAt)}.</p>;
   return null;
 }
 
 /** Unix seconds as the user's own date and time. */
 function when(unix: number): string {
-  return new Date(unix * 1000).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+  return new Date(unix * 1000).toLocaleString(currentLocale(), { dateStyle: "medium", timeStyle: "short" });
 }
 
 function Check(props: { label: string; checked: boolean; onChange: (on: boolean) => void; children?: ReactNode }) {
@@ -222,10 +222,10 @@ function UpdatePanel({ s, portable }: { s: Snapshot; portable: boolean }) {
           onClick={() => invoke<void>("update_statistics").catch(console.error)}
           disabled={s.dataset.downloading !== null}
         >
-          Update statistics
+          {t("Update statistics")}
         </button>
         <button onClick={check} disabled={busy}>
-          Check for app update
+          {t("Check for app update")}
         </button>
       </div>
       <StatisticsLine s={s} />
@@ -233,11 +233,11 @@ function UpdatePanel({ s, portable }: { s: Snapshot; portable: boolean }) {
       {status.state === "available" &&
         (portable ? (
           <button onClick={openReleases} className="active">
-            Open release page
+            {t("Open release page")}
           </button>
         ) : (
           <button onClick={download} className="active">
-            Download update
+            {t("Download update")}
           </button>
         ))}
     </div>
@@ -249,27 +249,27 @@ function UpdateLine({ status }: { status: UpdateStatus }) {
     case "idle":
       return null;
     case "checking":
-      return <p className="muted">Checking…</p>;
+      return <p className="muted">{t("Checking…")}</p>;
     case "upToDate":
-      return <p className="muted">Already up to date ({status.current}).</p>;
+      return <p className="muted">{t("Already up to date (")}{status.current}).</p>;
     case "available":
       return (
         <p>
-          Update available: <strong>{status.version}</strong> <span className="muted">(you have {status.current})</span>
+          {t("Update available:")} <strong>{status.version}</strong> <span className="muted">{t("(you have")} {status.current})</span>
         </p>
       );
     case "downloading": {
       const percent = status.total ? Math.floor((100 * status.downloaded) / status.total) : null;
-      return <p className="muted">Downloading {status.version}…{percent !== null && ` ${percent}%`}</p>;
+      return <p className="muted">{t("Downloading")} {status.version}…{percent !== null && ` ${percent}%`}</p>;
     }
     case "installing":
-      return <p className="muted">Installing {status.version}. The app closes and restarts.</p>;
+      return <p className="muted">{t("Installing")} {status.version}{t(". The app closes and restarts.")}</p>;
     case "failed":
-      return <p className="error">{status.message}</p>;
+      return <p className="error">{detail(status.message)}</p>;
   }
 }
 
-const CHAT_STATUSES: [ChatStatus, string][] = [
+const CHAT_STATUSES: [ChatStatus, "Online" | "Away" | "Offline"][] = [
   ["online", "Online"],
   ["away", "Away"],
   ["offline", "Offline"],
@@ -299,11 +299,11 @@ function ChatStatusRadios({ connected }: { connected: boolean }) {
 
   return (
     <div className="radios" role="radiogroup" aria-labelledby="chat-status-label">
-      <span id="chat-status-label">Set status</span>
+      <span id="chat-status-label">{t("Set status")}</span>
       {CHAT_STATUSES.map(([value, label]) => (
         <label key={value}>
           <input type="radio" name="chat-status" disabled={!connected} checked={status === value} onChange={() => pick(value)} />
-          {label}
+          {t(label)}
         </label>
       ))}
     </div>

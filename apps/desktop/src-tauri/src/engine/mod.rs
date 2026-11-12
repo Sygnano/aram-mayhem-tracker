@@ -377,6 +377,7 @@ impl EngineState {
                             champion_id: s.champion_id,
                             stats: s.stats.clone(),
                             swappable: s.swappable,
+                            armed: s.swappable && cs.armed == Some(s.champion_id),
                             x: n.x,
                             y: n.y,
                             width: n.width,

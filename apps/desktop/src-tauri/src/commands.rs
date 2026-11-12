@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
 
 use crate::config::Settings;
+use crate::engine::champselect::{self, ClickDecision};
 use crate::engine::snapshot::AppSnapshot;
 use crate::engine::Engine;
 use crate::portable::Mode;
@@ -95,39 +96,31 @@ pub fn update_statistics(engine: Shared<'_>) {
     crate::engine::dataset::request_update(&mut engine.lock());
 }
 
-/// Swaps the local player's champion for one on the champ-select bench.
+/// A click on a champ-select bench block: swaps to that champion, or arms the swap for later.
 ///
-/// The only write the champ-select overlay performs, and it only ever happens because the user
-/// clicked the badge for that champion. It is the same action as clicking the card in the client.
+/// The champ-select overlay's only write, and it always starts with the user clicking the block
+/// for that champion. Before swaps open (D-094), a teammate's champion cannot be swapped to yet, so
+/// the click arms it and the champ-select loop sends the swap the moment they open. A second click
+/// on the same champion cancels it. A champion from the player's own pool is swapped to at once.
 ///
 /// The champion is checked against the bench the LCU last reported rather than trusted from the
 /// frontend: a stale overlay must not be able to ask for a swap that is no longer on offer.
 #[tauri::command]
-pub async fn swap_to_champion(engine: Shared<'_>, champion_id: i64) -> Result<(), String> {
-    let (credentials, on_bench) = {
-        let st = engine.lock();
-        let on_bench = st.champ_select.session.as_ref().is_some_and(|s| s.is_on_bench(champion_id));
-        (st.client.credentials.clone(), on_bench)
+pub async fn swap_to_champion(engine: Shared<'_>, champion_id: i64) -> Result<ClickDecision, String> {
+    let decision = {
+        let mut st = engine.lock();
+        let decision = st.champ_select.click(champion_id)?;
+        match decision {
+            ClickDecision::Armed => st.log_event(format!("champ select: armed a swap to champion {champion_id}")),
+            ClickDecision::Disarmed => st.log_event(format!("champ select: cancelled the swap to {champion_id}")),
+            ClickDecision::SwapNow => {}
+        }
+        decision
     };
-    let credentials = credentials.ok_or("the League client was not found")?;
-    if !on_bench {
-        return Err(format!("champion {champion_id} is not on the bench any more"));
+    if decision == ClickDecision::SwapNow {
+        champselect::send_swap(engine.inner(), champion_id, "click").await?;
     }
-    let result = LcuClient::new(&credentials).bench_swap(champion_id).await;
-    let mut st = engine.lock();
-    match result {
-        Ok(()) => {
-            st.champ_select.last_swap = Some(format!("swapped to {champion_id}"));
-            st.log_event(format!("champ select: swapped to champion {champion_id}"));
-            Ok(())
-        }
-        Err(e) => {
-            let message = format!("swap failed: {e}");
-            st.champ_select.last_swap = Some(message.clone());
-            st.log_event(format!("champ select: {message}"));
-            Err(message)
-        }
-    }
+    Ok(decision)
 }
 
 /// The chat status the client reports now, for the companion window's radio buttons. `None` when

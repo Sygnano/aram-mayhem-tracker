@@ -43,6 +43,27 @@ const POLL: Duration = Duration::from_millis(200);
 /// whatever the client reports.
 const CARDS_ENTRANCE: Duration = Duration::from_secs(2);
 
+/// How many times an armed swap is sent before it is given up on.
+///
+/// Swaps open at `FINALIZATION` (D-094), but that has not been timed against the client's own lock:
+/// if the client still refuses for a moment after the phase flips, a single attempt would drop a
+/// swap the player asked for. A few attempts, one per tick, cover that without hammering the LCU.
+pub const ARMED_SWAP_ATTEMPTS: u8 = 5;
+
+/// What a click on a bench block did. Sent back to the overlay, which draws the armed state from
+/// the snapshot rather than from this, so a lost answer cannot leave a block wrongly animated.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ClickDecision {
+    /// Swap straight away: swaps are open, or the champion came from our own pool.
+    SwapNow,
+    /// Swaps are not open yet and the champion is a teammate's: it is armed, and will be swapped
+    /// to when they open.
+    Armed,
+    /// The champion was already armed, and the click cancelled it.
+    Disarmed,
+}
+
 /// Which entry of the subset list the pick card at screen position `card` shows.
 ///
 /// The list is **not** in drawing order: with three cards the client puts the third entry in the
@@ -154,6 +175,17 @@ pub struct ChampSelectState {
     pub slots: Vec<Slot>,
     /// How the last swap went.
     pub last_swap: Option<String>,
+    /// Every champion that was ours during this champ select: the cards we were offered and any
+    /// champion we held. These can be swapped to before swaps open; a teammate's champion cannot,
+    /// so a click on one is armed instead (D-094).
+    pub own_pool: Vec<i64>,
+    /// The bench champion the player clicked before swaps opened, to be swapped to when they open.
+    /// One at a time: arming another replaces it, clicking it again cancels it.
+    pub armed: Option<i64>,
+    /// Attempts already made at the armed swap. See [`ARMED_SWAP_ATTEMPTS`].
+    pub armed_attempts: u8,
+    /// The armed swap has been sent and has not answered yet, so the next tick must not resend it.
+    pub armed_in_flight: bool,
     /// When the pick cards were first seen, so the entrance animation can be waited out. Cleared the
     /// moment the cards are not up, so a second card phase waits again from scratch.
     pub cards_since: Option<Instant>,
@@ -184,6 +216,96 @@ impl ChampSelectState {
         }
     }
 
+    /// Have swaps opened for every bench champion? From the phase alone: `FINALIZATION` (D-094).
+    /// Before it, only champions from our own pool can be swapped to.
+    pub fn swaps_open(&self) -> bool {
+        self.session.as_ref().is_some_and(|s| s.phase == "FINALIZATION")
+    }
+
+    /// Records the champions that are ours: the cards on offer and the champion we hold. Kept for
+    /// the whole champ select, because the cards we did not take land on the bench afterwards and
+    /// the subset endpoint is only read during the card phase.
+    fn remember_own_pool(&mut self) {
+        let Some(session) = &self.session else { return };
+        for id in session.subset.iter().copied().chain(session.local_champion) {
+            if id > 0 && !self.own_pool.contains(&id) {
+                self.own_pool.push(id);
+            }
+        }
+    }
+
+    /// Decides what a click on the bench block for `champion_id` does. Changes only the armed
+    /// state; sending the swap is the caller's job.
+    ///
+    /// - Not on the bench: refused, so a stale overlay cannot ask for a swap that has expired.
+    /// - Swaps open, or the champion was ours: swap now.
+    /// - Otherwise it is a teammate's champion before swaps open: armed, or disarmed if it already
+    ///   was. Arming another champion replaces the previous one.
+    pub fn click(&mut self, champion_id: i64) -> Result<ClickDecision, String> {
+        if !self.session.as_ref().is_some_and(|s| s.is_on_bench(champion_id)) {
+            return Err(format!("champion {champion_id} is not on the bench any more"));
+        }
+        if self.swaps_open() || self.own_pool.contains(&champion_id) {
+            // A direct swap supersedes whatever was armed: the player has just chosen.
+            self.disarm();
+            return Ok(ClickDecision::SwapNow);
+        }
+        if self.armed == Some(champion_id) {
+            self.disarm();
+            return Ok(ClickDecision::Disarmed);
+        }
+        self.disarm();
+        self.armed = Some(champion_id);
+        Ok(ClickDecision::Armed)
+    }
+
+    /// A swap is armed and has not landed yet, so the LCU loop reads the session faster to send it
+    /// as soon as swaps open.
+    pub fn waiting_to_swap(&self) -> bool {
+        self.armed.is_some()
+    }
+
+    pub fn disarm(&mut self) {
+        self.armed = None;
+        self.armed_attempts = 0;
+        self.armed_in_flight = false;
+    }
+
+    /// The armed swap to send now, if one is due. Marks it in flight; report the outcome with
+    /// [`Self::armed_swap_done`].
+    ///
+    /// An armed champion that has left the bench (a teammate took it, or the bench changed) is
+    /// dropped rather than kept waiting: it can never be swapped to.
+    pub fn take_due_swap(&mut self) -> Option<i64> {
+        let id = self.armed?;
+        if self.armed_in_flight {
+            return None;
+        }
+        if !self.session.as_ref().is_some_and(|s| s.is_on_bench(id)) {
+            self.disarm();
+            self.last_swap = Some(format!("armed champion {id} left the bench"));
+            return None;
+        }
+        if !self.swaps_open() {
+            return None;
+        }
+        self.armed_in_flight = true;
+        self.armed_attempts += 1;
+        Some(id)
+    }
+
+    /// The outcome of a swap handed out by [`Self::take_due_swap`]. A success, or the last allowed
+    /// failure, disarms; an earlier failure stays armed for the next tick.
+    pub fn armed_swap_done(&mut self, champion_id: i64, ok: bool) {
+        if self.armed != Some(champion_id) {
+            return; // disarmed or replaced while the request was out
+        }
+        self.armed_in_flight = false;
+        if ok || self.armed_attempts >= ARMED_SWAP_ATTEMPTS {
+            self.disarm();
+        }
+    }
+
     /// Have the cards been up long enough to have stopped moving? See [`CARDS_ENTRANCE`].
     pub fn cards_settled(&self) -> bool {
         self.cards_since.is_some_and(|since| since.elapsed() >= CARDS_ENTRANCE)
@@ -209,6 +331,7 @@ impl ChampSelectState {
         } else {
             self.cards_since = None;
         }
+        self.remember_own_pool();
         let Some(session) = &self.session else { return };
 
         let mut slots = Vec::new();
@@ -279,6 +402,56 @@ async fn run(engine: Arc<Engine>) {
         let st: &mut super::EngineState = &mut guard;
         st.champ_select.client_rect = rect;
         st.champ_select.rebuild(&st.tuning.champ_select_layout, &st.rankings);
+        drop(guard);
+        // Normally the LCU loop has already sent it on the read that opened swaps; this catches a
+        // retry, or a swap armed in the instant after that read.
+        fire_due_swap(&engine);
+    }
+}
+
+/// Sends the armed swap if its moment has come. Called by the LCU loop right after each session
+/// read, so the swap goes out on the read that first shows swaps open, and by the layout loop.
+///
+/// Sent from its own task so a slow LCU stalls neither loop; `armed_in_flight` keeps the two
+/// callers, or two ticks, from sending it twice.
+pub fn fire_due_swap(engine: &Arc<Engine>) {
+    let Some(champion_id) = engine.lock().champ_select.take_due_swap() else { return };
+    let engine = engine.clone();
+    tauri::async_runtime::spawn(async move {
+        let ok = send_swap(&engine, champion_id, "armed").await.is_ok();
+        engine.lock().champ_select.armed_swap_done(champion_id, ok);
+    });
+}
+
+/// Sends the bench swap and records how it went. Used by a click and by an armed swap alike.
+///
+/// The champion is checked against the bench the LCU last reported rather than trusted from the
+/// caller: a stale overlay, or an armed swap whose champion has gone, must not ask for a swap that
+/// is no longer on offer.
+pub async fn send_swap(engine: &Arc<Engine>, champion_id: i64, how: &str) -> Result<(), String> {
+    let (credentials, on_bench) = {
+        let st = engine.lock();
+        let on_bench = st.champ_select.session.as_ref().is_some_and(|s| s.is_on_bench(champion_id));
+        (st.client.credentials.clone(), on_bench)
+    };
+    let credentials = credentials.ok_or("the League client was not found")?;
+    if !on_bench {
+        return Err(format!("champion {champion_id} is not on the bench any more"));
+    }
+    let result = league_api::lcu::LcuClient::new(&credentials).bench_swap(champion_id).await;
+    let mut st = engine.lock();
+    match result {
+        Ok(()) => {
+            st.champ_select.last_swap = Some(format!("swapped to {champion_id}"));
+            st.log_event(format!("champ select: swapped to champion {champion_id} ({how})"));
+            Ok(())
+        }
+        Err(e) => {
+            let message = format!("swap failed: {e}");
+            st.champ_select.last_swap = Some(message.clone());
+            st.log_event(format!("champ select: {message} ({how})"));
+            Err(message)
+        }
     }
 }
 
@@ -601,6 +774,128 @@ mod tests {
         let view = st.snapshot().champ_select;
         assert!(view.active, "champ select is still open");
         assert!(view.slots.is_empty());
+    }
+
+    /// The card phase of a real dump: our cards are `[112, 40, 421]`, the bench holds teammates'
+    /// champions `[103, 235, 360]`, and swaps are not open yet.
+    fn card_phase() -> EngineState {
+        champ_select_state(session(vec![None; 5], vec![103, 235, 360], vec![112, 40, 421], "BAN_PICK"))
+    }
+
+    /// Moves the session to finalisation, the way the real dump did: we hold 421, and the two
+    /// cards we did not take joined the bench. The subset endpoint is no longer read.
+    fn to_finalization(st: &mut EngineState) {
+        let s = st.champ_select.session.as_mut().unwrap();
+        s.phase = "FINALIZATION".into();
+        s.local_champion = Some(421);
+        s.team[0] = Some(421);
+        s.bench = vec![103, 235, 360, 41, 112, 40];
+        s.subset.clear();
+        rebuild(st);
+    }
+
+    fn armed_blocks(st: &EngineState) -> Vec<i64> {
+        blocks(st, champselect::Surface::Strip).into_iter().filter(|s| s.armed).map(|s| s.champion_id).collect()
+    }
+
+    /// Before swaps open, a teammate's champion is armed rather than swapped to, and the block says so.
+    #[test]
+    fn a_teammates_champion_clicked_before_swaps_open_is_armed() {
+        let mut st = card_phase();
+        assert!(!st.champ_select.swaps_open());
+        assert_eq!(st.champ_select.click(235), Ok(champselect::ClickDecision::Armed));
+        assert_eq!(armed_blocks(&st), vec![235], "only the clicked block animates");
+        assert_eq!(st.champ_select.take_due_swap(), None, "nothing is sent while swaps are closed");
+
+        // Arming another replaces it; clicking the armed one again cancels it.
+        assert_eq!(st.champ_select.click(360), Ok(champselect::ClickDecision::Armed));
+        assert_eq!(armed_blocks(&st), vec![360]);
+        assert_eq!(st.champ_select.click(360), Ok(champselect::ClickDecision::Disarmed));
+        assert!(armed_blocks(&st).is_empty());
+    }
+
+    /// A champion from our own pool is swapped to at once, even before swaps open, and that
+    /// direct choice cancels anything armed.
+    #[test]
+    fn our_own_champion_is_swapped_to_at_once() {
+        let mut st = card_phase();
+        assert_eq!(st.champ_select.click(103), Ok(champselect::ClickDecision::Armed));
+        // One of our cards sitting on the bench, e.g. while the phase is still `BAN_PICK`.
+        st.champ_select.session.as_mut().unwrap().bench.push(40);
+        rebuild(&mut st);
+        assert_eq!(st.champ_select.click(40), Ok(champselect::ClickDecision::SwapNow));
+        assert_eq!(st.champ_select.armed, None, "a direct swap supersedes the armed one");
+
+        // The pool is remembered after the subset endpoint stops answering.
+        to_finalization(&mut st);
+        assert!(st.champ_select.own_pool.contains(&112) && st.champ_select.own_pool.contains(&421));
+    }
+
+    /// The armed swap is handed out once when swaps open, and done once it succeeds.
+    #[test]
+    fn the_armed_swap_fires_when_swaps_open() {
+        let mut st = card_phase();
+        st.champ_select.click(235).unwrap();
+        to_finalization(&mut st);
+        assert!(st.champ_select.swaps_open());
+
+        assert_eq!(st.champ_select.take_due_swap(), Some(235));
+        assert_eq!(st.champ_select.take_due_swap(), None, "not sent twice while in flight");
+        assert_eq!(armed_blocks(&st), vec![235], "still animated until it lands");
+        st.champ_select.armed_swap_done(235, true);
+        assert_eq!(st.champ_select.armed, None);
+        assert_eq!(st.champ_select.take_due_swap(), None);
+
+        // Once swaps are open, a click is a plain swap, teammate's champion or not.
+        assert_eq!(st.champ_select.click(103), Ok(champselect::ClickDecision::SwapNow));
+    }
+
+    /// A refused swap is tried again on the next ticks, then given up on.
+    #[test]
+    fn a_failing_armed_swap_is_retried_then_dropped() {
+        let mut st = card_phase();
+        st.champ_select.click(235).unwrap();
+        to_finalization(&mut st);
+        for attempt in 1..=champselect::ARMED_SWAP_ATTEMPTS {
+            assert_eq!(st.champ_select.take_due_swap(), Some(235), "attempt {attempt}");
+            st.champ_select.armed_swap_done(235, false);
+        }
+        assert_eq!(st.champ_select.armed, None, "given up after the last attempt");
+        assert_eq!(st.champ_select.take_due_swap(), None);
+    }
+
+    /// An armed champion that leaves the bench can never be swapped to, so it is dropped. And a
+    /// champion that is not on the bench cannot be armed at all.
+    #[test]
+    fn an_armed_champion_that_leaves_the_bench_is_dropped() {
+        let mut st = card_phase();
+        assert!(st.champ_select.click(999).is_err(), "not on the bench");
+        assert!(st.champ_select.click(112).is_err(), "a card, not a bench champion");
+
+        st.champ_select.click(235).unwrap();
+        st.champ_select.session.as_mut().unwrap().bench.retain(|&id| id != 235);
+        rebuild(&mut st);
+        assert_eq!(st.champ_select.take_due_swap(), None);
+        assert_eq!(st.champ_select.armed, None);
+
+        // And the end of champ select forgets everything.
+        st.champ_select.click(103).unwrap();
+        st.champ_select.clear();
+        assert_eq!(st.champ_select.armed, None);
+        assert!(st.champ_select.own_pool.is_empty());
+    }
+
+    /// A late answer for a swap that was cancelled meanwhile does not touch the new state.
+    #[test]
+    fn a_late_answer_for_a_replaced_swap_is_ignored() {
+        let mut st = card_phase();
+        st.champ_select.click(235).unwrap();
+        to_finalization(&mut st);
+        assert_eq!(st.champ_select.take_due_swap(), Some(235));
+        st.champ_select.disarm();
+        st.champ_select.armed = Some(103);
+        st.champ_select.armed_swap_done(235, true);
+        assert_eq!(st.champ_select.armed, Some(103));
     }
 
     /// The same session always produces the same blocks. This is the property that stopped the

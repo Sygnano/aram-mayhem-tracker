@@ -130,6 +130,8 @@ export interface ChampSelectSlot {
   stats: ChampionStats | null;
   /** Clicking this block swaps to that champion. Only the bench qualifies. */
   swappable: boolean;
+  /** Clicked before swaps opened: the swap will be sent when they open. The border animates. */
+  armed: boolean;
   x: number;
   y: number;
   width: number;

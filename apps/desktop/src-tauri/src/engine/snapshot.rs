@@ -324,6 +324,9 @@ pub struct ChampSelectSlotView {
     pub stats: Option<super::champselect::ChampionStats>,
     /// Clicking this block swaps to that champion.
     pub swappable: bool,
+    /// The player clicked this champion before swaps opened, and the swap will be sent when they
+    /// open. The overlay animates the block's border while this holds.
+    pub armed: bool,
     pub x: f32,
     pub y: f32,
     pub width: f32,

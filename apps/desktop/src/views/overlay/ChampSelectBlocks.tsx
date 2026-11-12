@@ -73,7 +73,9 @@ function StatBlock({ slot, simple }: { slot: ChampSelectSlot; simple: boolean })
     if (!slot.swappable || pending) return;
     setPending(true);
     setFailed(false);
-    invoke("swap_to_champion", { championId: slot.championId })
+    // Swaps at once, or arms the swap until swaps open (or cancels an armed one). The armed state is
+    // drawn from the snapshot, not from this answer, so the backend stays the one source of it.
+    invoke<"swapNow" | "armed" | "disarmed">("swap_to_champion", { championId: slot.championId })
       .catch(() => setFailed(true))
       .finally(() => setPending(false));
   };
@@ -151,6 +153,7 @@ function StatBlock({ slot, simple }: { slot: ChampSelectSlot; simple: boolean })
     stats && stats.sampleCount > 0 && stats.sampleCount < LOW_SAMPLE ? "ov-cs-thin" : "",
     failed ? "ov-cs-failed" : "",
     simple ? "ov-cs-simple" : "",
+    slot.armed ? "ov-cs-armed" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -158,7 +161,22 @@ function StatBlock({ slot, simple }: { slot: ChampSelectSlot; simple: boolean })
   // Only the bench is a button. Everything else is a plain box, so it cannot swallow a click meant
   // for the client underneath.
   return slot.swappable ? (
-    <button className={className} style={style} onClick={swap} disabled={pending} title="Swap to this champion">
+    <button
+      className={className}
+      style={style}
+      onClick={swap}
+      disabled={pending}
+      aria-pressed={slot.armed}
+      title={slot.armed ? "Swapping when swaps open - click to cancel" : "Swap to this champion"}
+    >
+      {/* Two sparks lapping the border, half a lap apart, while the swap waits for swaps to open. Drawn
+          only while armed, so an idle block costs nothing. */}
+      {slot.armed && (
+        <>
+          <span className="ov-cs-spark ov-cs-spark-a" aria-hidden="true" />
+          <span className="ov-cs-spark ov-cs-spark-b" aria-hidden="true" />
+        </>
+      )}
       {body}
     </button>
   ) : (

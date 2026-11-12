@@ -143,8 +143,9 @@ impl LcuClient {
     /// Swaps the local player's champion for one on the bench.
     ///
     /// This is the same action as clicking the champion in the client, and it is the only *write* the
-    /// champ-select overlay performs. It is deliberately only ever called from a click: a user asking
-    /// for a swap is not automation, and nothing here should ever decide to swap on its own.
+    /// champ-select overlay performs. Every call starts with the user clicking that champion: either at
+    /// once, or later, when a swap they armed before swaps opened becomes possible (D-094). Nothing
+    /// here ever chooses a champion on its own.
     ///
     /// Confirmed against live champ selects. Failures surface in the overlay rather than
     /// being swallowed.

@@ -15,6 +15,11 @@ const SESSION_REFRESH: Duration = Duration::from_secs(5);
 /// While in queue with auto accept on. The accept is timed from the ready check appearing, which a
 /// 1 Hz poll would see up to a second late.
 const QUEUE_POLL: Duration = Duration::from_millis(250);
+/// While a bench swap is armed and swaps have not opened yet (D-094). The swap is sent on the read
+/// that first shows `FINALIZATION`, so this is how late it can be: at 1 Hz it was up to a second
+/// behind the client. Only for the seconds a swap is waiting, so the LCU is not read this often
+/// otherwise.
+const ARMED_POLL: Duration = Duration::from_millis(100);
 /// How long a ready check is left alone before it is accepted.
 const ACCEPT_DELAY: Duration = Duration::from_secs(1);
 /// Phase reads in a row that may time out before the client is taken to be gone.
@@ -169,6 +174,10 @@ pub async fn run(engine: Arc<Engine>) {
                         }
                     }
                     st.client.error = None;
+                    drop(st);
+                    // An armed swap goes out from here, on the read that first shows swaps open,
+                    // rather than waiting for the layout loop's next tick (D-094).
+                    super::champselect::fire_due_swap(&engine);
                 }
                 Err(e) => {
                     failures_in_a_row += 1;
@@ -200,15 +209,17 @@ pub async fn run(engine: Arc<Engine>) {
             }
         }
 
-        let in_queue = {
+        let (in_queue, armed) = {
             let st = engine.lock();
-            st.settings.auto_accept
-                && matches!(st.client.phase, Some(GameflowPhase::Matchmaking | GameflowPhase::ReadyCheck))
+            let in_queue = st.settings.auto_accept
+                && matches!(st.client.phase, Some(GameflowPhase::Matchmaking | GameflowPhase::ReadyCheck));
+            (in_queue, st.champ_select.waiting_to_swap())
         };
-        let pause = match (&lcu, in_queue) {
-            (None, _) => IDLE_POLL,
-            (Some(_), true) => QUEUE_POLL,
-            (Some(_), false) => POLL,
+        let pause = match (&lcu, in_queue, armed) {
+            (None, _, _) => IDLE_POLL,
+            (Some(_), _, true) => ARMED_POLL,
+            (Some(_), true, false) => QUEUE_POLL,
+            (Some(_), false, false) => POLL,
         };
         tokio::time::sleep(pause).await;
     }

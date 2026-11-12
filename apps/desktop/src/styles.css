@@ -200,6 +200,48 @@ button.ov-cs-block:hover { background: rgba(20, 40, 32, 0.97); border-color: #7c
 button.ov-cs-block:disabled { cursor: default; opacity: 0.6; }
 .ov-cs-failed { border-color: #e06666 !important; }
 
+/* Armed: clicked before swaps opened, and the swap goes out when they open. Two sparks lap the
+ * block's border, clockwise and half a lap apart, so they always sit on opposite sides: "you're
+ * about to take this one". They run under the tier symbol, which straddles the top edge.
+ *
+ * Each spark follows the border with a CSS motion path: `offset-path` traces the block's own rounded
+ * outline, inset by half the border so the spark rides the line itself, and `offset-distance` runs
+ * it round. `inset()` starts at the top-left and goes clockwise, so the top run is left to right.
+ * `offset-rotate: auto` turns the spark's tail along the edge, round the corners included. No
+ * library: WebView2 is Chromium, which has had shapes in `offset-path` since version 116. */
+button.ov-cs-armed { border-color: #ffd36b; box-shadow: 0 0 0.8vh rgba(255, 196, 70, 0.45); }
+.ov-cs-spark {
+  position: absolute; top: 0; left: 0; pointer-events: none; z-index: 0;
+  width: 2.4vh; height: 0.4vh; border-radius: 0.4vh;
+  /* Bright head at the right end, which `offset-rotate: auto` points along the direction of travel,
+   * fading into a tail behind it. */
+  background: linear-gradient(90deg, rgba(255, 211, 107, 0), #ffd36b 65%, #fffbe8);
+  box-shadow: 0 0 0.6vh #ffc446, 0 0 1.2vh rgba(255, 196, 70, 0.6);
+  offset-path: inset(0.075vh round 0.5vh);
+  offset-anchor: 85% 50%;
+  offset-rotate: auto;
+  animation: ov-cs-spark-lap 1.6s linear infinite;
+}
+/* Half a lap behind the first, so the two are always opposite each other. */
+.ov-cs-spark-b { animation-delay: -0.8s; }
+/* Only the stacking order. The symbol keeps its own positioning: setting `position` here (same
+ * specificity, later rule) pulled the strip's absolutely placed symbol back into the flow and shifted
+ * the figures down while the block was armed. */
+.ov-cs-armed .ov-cs-symbol { z-index: 1; }
+@keyframes ov-cs-spark-lap {
+  from { offset-distance: 0%; }
+  to { offset-distance: 100%; }
+}
+/* No motion path support, or reduced motion asked for: no sparks, a double border says it instead. */
+@supports not (offset-path: inset(0)) {
+  .ov-cs-spark { display: none; }
+  button.ov-cs-armed { border-style: double; border-width: 0.4vh; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ov-cs-spark { animation: none; display: none; }
+  button.ov-cs-armed { border-style: double; border-width: 0.4vh; }
+}
+
 /* Invented numbers announce themselves, and keep doing so until they are real. */
 /* A champion the table has no row for. Dashed, so it reads as "nothing to say here" rather than as
  * a block whose numbers happen to be dull, and dimmed so the eye passes over it. */

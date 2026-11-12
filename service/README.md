@@ -19,8 +19,9 @@ from this folder alone.
 ```sh
 cd service
 pnpm install
-PORT=8123 DATABASE_PATH=./local.db pnpm dev     # restarts on every source change
-curl -s localhost:8123/v1/health
+cp .env.example .env                           # PORT=16051, DATABASE_PATH=./local.db
+pnpm dev                                       # restarts on every source change
+curl -s localhost:16051/v1/health
 ```
 
 Node runs the TypeScript sources directly, so `pnpm dev` needs no build. The database file is
@@ -29,8 +30,8 @@ created on first run and the migrations apply on their own. A fresh database ans
 against the local service (about 15 minutes for a whole version, at the real pace):
 
 ```sh
-ADMIN_TOKEN=dev PORT=8123 DATABASE_PATH=./local.db pnpm dev                     # the service needs the token too
-SERVICE_URL=http://127.0.0.1:8123 ADMIN_TOKEN=dev node src/scripts/crawl.ts    # in another shell
+ADMIN_TOKEN=dev pnpm dev                                                       # the service needs the token too
+SERVICE_URL=http://127.0.0.1:16051 ADMIN_TOKEN=dev node src/scripts/crawl.ts    # in another shell
 ```
 
 To point the desktop app at a local service, create `%LOCALAPPDATA%\fr.sygnano.aram-mayhem-tracker\tuning.json`
@@ -71,7 +72,7 @@ Everything comes from the environment, and nothing is required.
 
 | Variable | Default | Notes |
 |---|---|---|
-| `PORT` | `8080` | Railway sets it |
+| `PORT` | `16051` (the local projects hub block) | Set to `8080` on Railway, where the crawler's `SERVICE_URL` targets it |
 | `DATABASE_PATH` | `/data/cache.db` | On Railway, a path on the mounted volume |
 | `ADMIN_TOKEN` | *unset* | Needed to **save** the anvil rankings and for **the crawler** to send anything. Unset means both are refused, so a deploy that forgets it is locked rather than open |
 | `REQUESTS_PER_SECOND_PER_IP` | `1` | Sustained requests per second from one client address. `0` turns the per-address limit off |

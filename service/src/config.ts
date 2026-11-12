@@ -56,7 +56,7 @@ type Env = Record<string, string | undefined>;
 export function configFromEnv(env: Env = process.env): Config {
   const adminToken = env.ADMIN_TOKEN?.trim() ?? "";
   return {
-    port: intEnv(env, "PORT", 8080, { max: 65535 }),
+    port: intEnv(env, "PORT", 16051, { max: 65535 }),
     databasePath: stringEnv(env, "DATABASE_PATH", "/data/cache.db"),
     aramkitBase: trimSlashes(stringEnv(env, "ARAMKIT_BASE", "https://data.aramkit.com")),
     cdragonBase: trimSlashes(stringEnv(env, "CDRAGON_BASE", "https://raw.communitydragon.org")),

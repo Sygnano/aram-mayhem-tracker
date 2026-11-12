@@ -5,7 +5,7 @@ describe("configuration", () => {
   it("starts with usable defaults when nothing is set", () => {
     const config = configFromEnv({});
     expect(config).toMatchObject({
-      port: 8080,
+      port: 16051,
       databasePath: "/data/cache.db",
       aramkitBase: "https://data.aramkit.com",
       cdragonBase: "https://raw.communitydragon.org",
@@ -38,7 +38,7 @@ describe("configuration", () => {
     expect(config.burstPerIp).toBe(6);
 
     expect(configFromEnv({ ADMIN_TOKEN: "   " }).adminToken).toBeNull();
-    expect(configFromEnv({ PORT: "  " }).port, "blank means unset").toBe(8080);
+    expect(configFromEnv({ PORT: "  " }).port, "blank means unset").toBe(16051);
   });
 
   it("refuses a value that is set but malformed", () => {
